@@ -320,8 +320,8 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
          ═══════════════════════════════════════════════════════════════════════ -->
     <script>
         const APP_CONFIG = Object.freeze({
-            VERSION: '1.0.0',
-            EDITION: 'Lite',   // distinct des installs LuxePOS complètes
+            VERSION: '1.0.1',
+            EDITION: 'Lite',   // distinct des installs LuxePOS completes
 
             // ── Durées (en millisecondes)
             TIME: Object.freeze({
@@ -13968,11 +13968,11 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
                                             </div>
                                             <div class="flex-1">
                                                 <div class="font-medium text-sm" style="color: var(--text-primary);">Choisir depuis votre ordinateur</div>
-                                                <div class="text-xs opacity-60" style="color: var(--text-secondary);">PNG, JPG ou SVG • Max 2 Mo</div>
+                                                <div class="text-xs opacity-60" style="color: var(--text-secondary);">PNG, JPG • Max 2 Mo (SVG retiré pour sécurité)</div>
                                             </div>
                                             <input
                                                 type="file"
-                                                accept="image/png,image/jpeg,image/jpg,image/svg+xml"
+                                                accept="image/png,image/jpeg,image/jpg"
                                                 class="hidden"
                                                 onchange="window.ui.handleLogoUpload(event)">
                                         </label>
@@ -17718,6 +17718,17 @@ service cloud.firestore {
                 this.toast('SheetJS non chargé — rechargez la page', 'error');
                 return;
             }
+            // v5.14.22 — Validation sécurité : taille + extension
+            // Évite DoS (fichier 500 MB qui crashe XLSX.read) + UX foireuse (fichier non-Excel)
+            const MAX_SIZE = 10 * 1024 * 1024;  // 10 MB
+            if (file.size > MAX_SIZE) {
+                this.toast(`Fichier trop volumineux (${(file.size/1024/1024).toFixed(1)} MB > 10 MB)`, 'error');
+                return;
+            }
+            if (!/\.(xlsx|xls|csv)$/i.test(file.name)) {
+                this.toast('Format invalide — utilisez .xlsx, .xls ou .csv', 'error');
+                return;
+            }
             const status = document.getElementById('import-excel-status');
             if (status) status.innerHTML = `📖 Lecture de <b>${esc(file.name)}</b>…`;
 
@@ -21294,7 +21305,7 @@ service cloud.firestore {
                         <span class="bg-brand text-white w-10 h-10 rounded-lg flex items-center justify-center shadow-lg">
                             <i data-lucide="layers" class="w-5 h-5"></i>
                         </span>
-                        ${product.name}
+                        ${esc(product.name)}
                     </h3>
                     <p class="text-sm mb-6" style="color: var(--text-secondary);">Sélectionnez une variante</p>
 
@@ -21380,7 +21391,7 @@ service cloud.firestore {
                         <span class="bg-brand text-white w-10 h-10 rounded-lg flex items-center justify-center shadow-lg">
                             <i data-lucide="layers" class="w-5 h-5"></i>
                         </span>
-                        ${product.name}
+                        ${esc(product.name)}
                     </h3>
                     <p class="text-sm mb-6" style="color: var(--text-secondary);">Détail des ${product.variants.length} variante${product.variants.length > 1 ? 's' : ''} • Stock total: ${product.stock}</p>
 
@@ -21623,10 +21634,10 @@ service cloud.firestore {
                         ${client ? `
                             <div style="flex: 1; text-align: right;">
                                 <p style="margin: 0; font-size: 12px; color: #999;">CLIENT</p>
-                                <p style="margin: 5px 0 0 0; font-size: 16px; font-weight: bold; color: black;">${client.firstName} ${client.lastName}</p>
-                                ${client.email ? `<p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">${client.email}</p>` : ''}
-                                ${client.phone ? `<p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">${client.phone}</p>` : ''}
-                                ${client.address ? `<p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">${client.address}</p>` : ''}
+                                <p style="margin: 5px 0 0 0; font-size: 16px; font-weight: bold; color: black;">${esc(client.firstName)} ${esc(client.lastName)}</p>
+                                ${client.email ? `<p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">${esc(client.email)}</p>` : ''}
+                                ${client.phone ? `<p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">${esc(client.phone)}</p>` : ''}
+                                ${client.address ? `<p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">${esc(client.address)}</p>` : ''}
                             </div>
                         ` : ''}
                     </div>
@@ -21655,8 +21666,8 @@ service cloud.firestore {
                             ${sale.items.map(item => `
                                 <tr style="border-bottom: 1px solid #f3f4f6;">
                                     <td style="padding: 15px 0; color: black;">
-                                        <div style="font-weight: bold; margin-bottom: 3px;">${item.name}</div>
-                                        ${item.reference ? `<div style="font-size: 11px; color: #999;">Réf: ${item.reference}</div>` : ''}
+                                        <div style="font-weight: bold; margin-bottom: 3px;">${esc(item.name)}</div>
+                                        ${item.reference ? `<div style="font-size: 11px; color: #999;">Réf: ${esc(item.reference)}</div>` : ''}
                                     </td>
                                     <td style="padding: 15px 0; text-align: center; color: black;">${item.qty}</td>
                                     <td style="padding: 15px 0; text-align: right; color: black;">${formatCurrency(item.price)}</td>

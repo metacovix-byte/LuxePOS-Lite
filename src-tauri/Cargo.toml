@@ -1,0 +1,37 @@
+[package]
+name = "luxepos-lite"
+version = "1.0.0"
+description = "LuxePOS Lite — Saisie & stock pour artisanes bijoutières (MVP)"
+authors = ["Maëlle"]
+edition = "2021"
+rust-version = "1.77"
+
+[lib]
+name = "luxepos_lite_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-fs = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-shell = "2"
+tauri-plugin-process = "2"
+tauri-plugin-updater = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = { version = "0.4", features = ["serde"] }
+# Chiffrement OneDrive backup (AES-GCM 256, clé locale machine) — réutilisé de LuxePOS
+aes-gcm = "0.10"
+rand = "0.8"
+base64 = "0.22"
+
+[profile.release]
+panic = "abort"
+codegen-units = 16
+lto = false
+opt-level = 2
+strip = false
+debug = false

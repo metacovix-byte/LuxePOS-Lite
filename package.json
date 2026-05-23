@@ -1,0 +1,30 @@
+{
+  "name": "luxepos-lite",
+  "version": "1.0.0",
+  "description": "LuxePOS Lite — MVP saisie & stock pour artisanes bijoutières",
+  "main": "playwright.config.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "playwright test",
+    "tauri": "tauri",
+    "inline-vendors": "node inline-vendors.js"
+  },
+  "keywords": ["pos", "stock", "bijouterie", "artisanat", "mvp"],
+  "author": "Maëlle",
+  "license": "MIT",
+  "type": "commonjs",
+  "devDependencies": {
+    "@capacitor/android": "^8.3.1",
+    "@capacitor/cli": "^8.3.1",
+    "@capacitor/core": "^8.3.1",
+    "@capacitor/filesystem": "^8.1.2",
+    "@capacitor/preferences": "^8.0.1",
+    "@playwright/test": "^1.59.1",
+    "@tauri-apps/cli": "^2.11.0"
+  },
+  "dependencies": {
+    "@capacitor-mlkit/barcode-scanning": "^8.1.0"
+  }
+}

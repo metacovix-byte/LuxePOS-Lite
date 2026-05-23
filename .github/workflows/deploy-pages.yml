@@ -1,0 +1,70 @@
+name: Deploy website to GitHub Pages
+
+on:
+  # - Push sur main : rebuild + redéploie le site marketing.
+  # - Push d'un tag vX.Y.Z : rebuild aussi (pour que le site reflète la release).
+  # NOTE : on ne met PAS de filtre `paths` ici car la combinaison
+  # `branches` + `tags` + `paths` désactive le trigger sur les tags
+  # (les tags ne contiennent pas forcément un diff sur website/).
+  # Le job est très court (~30s), inutile d'optimiser plus.
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  # Déclenchement manuel depuis l'onglet Actions.
+  workflow_dispatch:
+
+# Permissions minimales requises par actions/deploy-pages@v4
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Une seule exécution concurrente, on annule l'éventuelle en cours
+# mais on attend qu'un déploiement en production se termine proprement.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build static site artifact
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare site directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          cp -R website/. _site/
+          # Garde-fou : on vérifie que l'index existe bien à la racine du déploiement
+          if [ ! -f _site/index.html ]; then
+            echo "::error::_site/index.html introuvable après copie de website/"
+            exit 1
+          fi
+          echo "=== Contenu du site à déployer ==="
+          ls -la _site/
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

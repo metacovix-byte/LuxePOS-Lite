@@ -1,0 +1,56 @@
+name: Build macOS app
+
+on:
+  workflow_dispatch:  # Manual trigger only (release.yml gère les tags v*)
+
+jobs:
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Rust toolchain (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            src-tauri/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('src-tauri/Cargo.toml') }}
+
+      - name: Install npm deps
+        run: npm ci || npm install
+
+      - name: Sync HTML to dist-web
+        run: |
+          cp luxepos-lite.html dist-web/luxepos-lite.html
+          cp luxepos-lite.html dist-web/index.html
+
+      - name: Build Tauri (Universal binary)
+        run: |
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+          npx tauri build --target universal-apple-darwin
+
+      - name: Upload .dmg artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LuxePOS-Lite-macOS
+          path: src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+          retention-days: 30
+
+      - name: Upload .app.tar.gz (for testing)
+        uses: actions/upload-artifact@v4
+        with:
+          name: LuxePOS-Lite-macOS-app
+          path: src-tauri/target/universal-apple-darwin/release/bundle/macos/*.app.tar.gz
+          if-no-files-found: ignore
+          retention-days: 30

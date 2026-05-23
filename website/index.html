@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LuxePOS Lite — MVP testeuses</title>
+    <meta name="description" content="Outil simplifié de saisie & stock pour artisanes bijoutières. Version early access.">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+        }
+        .container { max-width: 720px; width: 100%; }
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #10b981, #d4a574);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+        .badge {
+            display: inline-block;
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 24px;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+            margin: 16px 0;
+        }
+        .card h2 { color: #10b981; font-size: 1.25rem; margin-bottom: 12px; }
+        .card p { line-height: 1.6; color: #cbd5e1; }
+        .download-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .btn {
+            display: block;
+            padding: 14px 18px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn small { display: block; opacity: 0.8; font-weight: 400; font-size: 0.75rem; margin-top: 4px; }
+        ul { margin-left: 20px; line-height: 1.8; color: #cbd5e1; }
+        footer {
+            margin-top: 40px;
+            font-size: 0.85rem;
+            color: #64748b;
+            text-align: center;
+        }
+        a { color: #10b981; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <span class="badge">v1.0 · early access · 3 testeuses</span>
+        <h1>LuxePOS Lite</h1>
+        <p style="color: #94a3b8; font-size: 1.1rem;">Saisie & stock pour artisanes bijoutières — version simplifiée.</p>
+
+        <div class="card">
+            <h2>📥 Télécharger</h2>
+            <p>Installeurs signés, mises à jour automatiques.</p>
+            <div class="download-grid">
+                <a class="btn" href="https://github.com/metacovix-byte/LuxePOS-Lite/releases/latest" download>
+                    Windows .exe
+                    <small>~5 MB</small>
+                </a>
+                <a class="btn" href="https://github.com/metacovix-byte/LuxePOS-Lite/releases/latest" download>
+                    macOS .dmg
+                    <small>Intel + M1/M2</small>
+                </a>
+                <a class="btn" href="https://github.com/metacovix-byte/LuxePOS-Lite/releases/latest" download>
+                    Android .apk
+                    <small>avec scanner</small>
+                </a>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>✨ Fonctions v1.0</h2>
+            <ul>
+                <li>Saisie produits + photos haute qualité (~200 KB max)</li>
+                <li>Import Excel intelligent (11 feuilles supportées)</li>
+                <li>3 emplacements : Atelier · Annemasse · Salon Genève</li>
+                <li>Toggle Vendu/Pas vendu en 1 click</li>
+                <li>Clients + Historique d'activité</li>
+                <li>Backup OneDrive chiffré + Export Excel</li>
+                <li>Mode offline + queue de synchro</li>
+                <li>Page Feedback pour remonter avis/bugs</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>📝 Ton retour compte</h2>
+            <p>L'app intègre une page <strong>Feedback</strong> avec ~6 questions pour faire remonter ce qui marche, ce qui bloque, ce qui manque. Aucune donnée transmise sans ton accord.</p>
+        </div>
+
+        <footer>
+            <p><a href="https://github.com/metacovix-byte/LuxePOS-Lite">Code source</a> · MIT License · Made by Maëlle 🇨🇭</p>
+        </footer>
+    </div>
+</body>
+</html>

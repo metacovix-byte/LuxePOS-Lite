@@ -1,17 +1,13 @@
 name: Deploy website to GitHub Pages
 
 on:
-  # - Push sur main : rebuild + redéploie le site marketing.
-  # - Push d'un tag vX.Y.Z : rebuild aussi (pour que le site reflète la release).
-  # NOTE : on ne met PAS de filtre `paths` ici car la combinaison
-  # `branches` + `tags` + `paths` désactive le trigger sur les tags
-  # (les tags ne contiennent pas forcément un diff sur website/).
-  # Le job est très court (~30s), inutile d'optimiser plus.
+  # Push sur main uniquement — les tags v* déclenchent release.yml qui
+  # produit les installeurs, pas la doc.
+  # (Avant : on triggait aussi sur tags v* mais ça échouait sans accès
+  # à l'env github-pages, du bruit inutile dans la liste CI.)
   push:
     branches:
       - main
-    tags:
-      - 'v*'
   # Déclenchement manuel depuis l'onglet Actions.
   workflow_dispatch:
 

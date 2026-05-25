@@ -5,6 +5,30 @@ Toutes les versions notables de LuxePOS Lite sont documentées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 Versioning : [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] — 2026-05-25 — URGENT : rollback CSP (Tailwind cassé sur binaire Tauri)
+
+### Corrigé
+La CSP ajoutée en v1.0.1 (par mesure sécurité) bloquait l'injection de
+styles dynamiques par Tailwind CSS Play CDN dans l'environnement Tauri
+WebView2. Résultat : l'app installée affichait du HTML brut sans aucun
+style (illisible).
+
+**Cause** : les tests locaux via `http-server` ne reproduisent PAS l'env
+Tauri qui applique la CSP. Le bug n'était visible qu'après build + install
+du `.exe`.
+
+**Fix** : retour à `csp: null` dans `tauri.conf.json` (état v1.0.0).
+
+### Conservé (les 4 autres fixes sécurité de v1.0.1 restent en place)
+- ✅ XSS — `esc()` sur 8 sites (modal variantes, facture)
+- ✅ Upload SVG retiré du sélecteur logo
+- ✅ Permissions Tauri réduites (fs/process/shell retirés)
+- ✅ Validation taille + extension Excel
+
+### À refaire correctement en v1.0.3+
+Une CSP compatible Tauri WebView2 + Tailwind dynamique sera ajoutée après
+test sur binaire compilé (pas seulement http-server local).
+
 ## [1.0.1] — 2026-05-24 — Hotfix sécurité avant install testeuses
 
 Audit indépendant a identifié 3 vulnérabilités critiques + 2 importantes

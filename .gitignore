@@ -69,3 +69,4 @@ photo-map.json
 # Demo recorder (artefacts vidéo + deps)
 marketing/demo/node_modules/
 marketing/demo/output/
+src-tauri/gen/

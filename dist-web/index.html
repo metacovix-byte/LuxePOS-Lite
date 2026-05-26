@@ -320,7 +320,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
          ═══════════════════════════════════════════════════════════════════════ -->
     <script>
         const APP_CONFIG = Object.freeze({
-            VERSION: '1.0.2',
+            VERSION: '1.0.3',
             EDITION: 'Lite',   // distinct des installs LuxePOS completes
 
             // ── Durées (en millisecondes)
@@ -3397,13 +3397,16 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
                     <span class="md:hidden text-[10px] absolute -bottom-1 font-medium">Clients</span>
                     <span class="nav-label">Clients</span>
                 </button>
+                <!-- v1.0.3 — Commandes Insta/WhatsApp visible UNIQUEMENT sur desktop.
+                     Sur mobile, la bottom nav reste à 5 items (vs 6) pour éviter la
+                     troncature des labels ("Acc...", "Ven...", "Cat..."). Sur mobile,
+                     les commandes restent accessibles via le menu "Plus". -->
                 <button onclick="router.navigate('orders')"
-                        class="nav-btn p-3 rounded-xl text-gray-400 hover:text-brand hover:bg-white/5 transition-all group relative btn-press"
+                        class="nav-btn p-3 rounded-xl text-gray-400 hover:text-brand hover:bg-white/5 transition-all group relative btn-press hidden md:flex"
                         data-tooltip="Commandes Instagram / WhatsApp"
                         data-page="orders"
                         aria-label="Commandes">
                     <i data-lucide="message-circle" class="w-6 h-6 group-hover:scale-110 transition-transform"></i>
-                    <span class="md:hidden text-[10px] absolute -bottom-1 font-medium">DM</span>
                     <span class="nav-label">Commandes</span>
                     <span id="orders-nav-badge" class="stock-nav-badge hidden" aria-label="Commandes en cours"></span>
                 </button>
@@ -6156,8 +6159,10 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
             const product = this.state.products.find(p => p.id === id);
             if (!product) return;
             // v5.10 — Compte les ventes liées (perte d'historique si suppression définitive)
+            // v1.0.3 — Bug fix : items issus de completeSale ont `id` (cart spread),
+            // ceux issus de réservations ont `productId`. Tester les deux.
             const linkedSales = (this.state.sales || []).filter(s =>
-                (s.items || []).some(i => i.productId === id)
+                (s.items || []).some(i => i.id === id || i.productId === id)
             ).length;
 
             // v5.10 — Suggérer d'archiver d'abord SAUF si déjà archivé (alors c'est une vraie suppression)
@@ -6791,6 +6796,8 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
             };
 
             // Mise à jour du stock
+            // v1.0.3 — décrémente AUSSI stockByLocation[locationId] pour multi-POS
+            //          (sinon les compteurs Atelier/Annemasse/Genève dérivent)
             sale.items.forEach(cartItem => {
                 const product = this.state.products.find(p => p.id === cartItem.id);
                 if (product) {
@@ -6806,15 +6813,22 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
                         // Produit simple, déduire du stock global
                         product.stock -= cartItem.qty;
                     }
+                    // v1.0.3 — Multi-POS : décrémente stockByLocation correspondant
+                    const locId = cartItem.locationId || product.locationId || 'loc_atelier';
+                    if (Array.isArray(product.stockByLocation)) {
+                        const slot = product.stockByLocation.find(s => s.locationId === locId);
+                        if (slot) slot.stock = Math.max(0, (slot.stock || 0) - cartItem.qty);
+                    }
                 }
             });
 
             // Mise à jour des stats client
+            // v1.0.3 — coalesce pour éviter NaN propagation si client créé sans champs initialisés
             if (this.state.currentClient) {
                 const client = this.state.clients.find(c => c.id === this.state.currentClient);
                 if (client) {
-                    client.totalSpent += sale.total;
-                    client.purchaseCount += 1;
+                    client.totalSpent = (client.totalSpent || 0) + sale.total;
+                    client.purchaseCount = (client.purchaseCount || 0) + 1;
                     client.lastPurchase = sale.date;
                 }
             }
@@ -8338,7 +8352,11 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
                 qty: it.qty
             }));
             if (res.clientId) {
-                this.state.currentClient = this.state.clients.find(c => c.id === res.clientId) || null;
+                // v1.0.3 — Bug fix : currentClient doit être un string ID partout (cf. completeSale L.6816),
+                // pas un objet client. Avant : .find(...) retournait l'objet → completeSale ne trouvait
+                // jamais le client et les stats client n'étaient jamais mises à jour pour ventes issues
+                // de réservations.
+                this.state.currentClient = res.clientId;
             }
             res.status = 'converted';
             res.updatedAt = new Date().toISOString();
@@ -15096,7 +15114,7 @@ service cloud.firestore {
                                 </div>
                                 <div>
                                     <div class="font-bold text-white">Vente Anonyme</div>
-                                    <div class="text-xs text-gray-400">Sans associer de client</div>
+                                    <div class="text-xs text-gray-500">Sans associer de client</div>
                                 </div>
                             </div>
                         </button>
@@ -15113,7 +15131,7 @@ service cloud.firestore {
                                         </div>
                                         <div class="min-w-0 flex-1">
                                             <div class="font-bold text-white">${esc(client.firstName)} ${esc(client.lastName)}</div>
-                                            <div class="text-xs text-gray-400 truncate">${esc(client.email)}</div>
+                                            <div class="text-xs text-gray-500 truncate">${esc(client.email)}</div>
                                             <div class="flex gap-3 mt-1">
                                                 <span class="text-xs text-brand font-mono">${formatCurrency(client.totalSpent)}</span>
                                                 <span class="text-xs text-gray-500">${client.purchaseCount} achat${client.purchaseCount > 1 ? 's' : ''}</span>
@@ -15292,7 +15310,7 @@ service cloud.firestore {
                                 <select id="payment-type-single" class="glass-input flex-1 px-4 py-3 rounded-lg">
                                     <option value="TWINT">📱 TWINT</option>
                                     <option value="Revolut">💳 Revolut</option>
-                                    <option value="Espèces">💵 Cash</option>
+                                    <option value="Espèces">💵 Espèces</option>
                                     <option value="CB">💳 Carte Bancaire</option>
                                     <option value="Virement">🏦 Virement</option>
                                     <option value="Chèque">📄 Chèque</option>
@@ -15308,7 +15326,7 @@ service cloud.firestore {
                                         <select class="glass-input flex-1 px-3 py-2 rounded text-sm" data-payment-type>
                                             <option value="TWINT">📱 TWINT</option>
                                             <option value="Revolut">💳 Revolut</option>
-                                            <option value="Espèces">💵 Cash</option>
+                                            <option value="Espèces">💵 Espèces</option>
                                             <option value="CB">💳 CB</option>
                                             <option value="Virement">🏦 Virement</option>
                                             <option value="Chèque">📄 Chèque</option>
@@ -15323,7 +15341,7 @@ service cloud.firestore {
                                 <div class="payment-split-item mb-3 p-4 glass-panel rounded-lg">
                                     <div class="flex items-center gap-3 mb-2">
                                         <select class="glass-input flex-1 px-3 py-2 rounded text-sm" data-payment-type>
-                                            <option value="Espèces">💵 Cash</option>
+                                            <option value="Espèces">💵 Espèces</option>
                                             <option value="TWINT">📱 TWINT</option>
                                             <option value="Revolut">💳 Revolut</option>
                                             <option value="CB">💳 CB</option>
@@ -15826,7 +15844,7 @@ service cloud.firestore {
                                     <div class="border-t border-gray-300 pt-4 mt-4">
                                         <div class="text-xs text-gray-500 mb-2">Couleurs sélectionnées</div>
                                         <div id="selected-colors-display" class="flex flex-wrap gap-2 min-h-[40px]">
-                                            <span class="text-xs text-gray-400 italic">Aucune couleur sélectionnée</span>
+                                            <span class="text-xs text-gray-500 italic">Aucune couleur sélectionnée</span>
                                         </div>
                                     </div>
                                 </div>
@@ -16083,7 +16101,7 @@ service cloud.firestore {
             if (!display) return;
 
             if (this.selectedColors.length === 0) {
-                display.innerHTML = '<span class="text-xs text-gray-400 italic">Aucune couleur sélectionnée</span>';
+                display.innerHTML = '<span class="text-xs text-gray-500 italic">Aucune couleur sélectionnée</span>';
                 hiddenInput.value = '';
             } else {
                 display.innerHTML = this.selectedColors.map(colorName => {
@@ -20109,9 +20127,11 @@ service cloud.firestore {
         }
         editMonthlyTarget() {
             const cur = window.store?.state?.settings?.monthlyTarget || 50000;
+            // v1.0.3 — utilise la devise dynamique au lieu de hardcoder €
+            const curSymbol = window.store?.state?.settings?.currency || 'CHF';
             this.showConfirm({
                 title: 'Objectif CA mensuel',
-                message: `<label style="display:block; text-align:left; font-size:13px; margin-bottom:8px; color: var(--text-secondary);">Nouvelle cible (€)</label>
+                message: `<label style="display:block; text-align:left; font-size:13px; margin-bottom:8px; color: var(--text-secondary);">Nouvelle cible (${curSymbol})</label>
                           <input type="number" id="target-input" value="${cur}" min="0" step="100" class="glass-input w-full p-3 rounded-lg font-mono" style="font-size: 16px;">`,
                 confirmLabel: 'Enregistrer',
                 onConfirm: () => {
@@ -25731,9 +25751,9 @@ td{padding:12px;border-bottom:1px solid #eee}
                         <div class="stat-card-2026">
                             <div class="flex items-center justify-between">
                                 <span class="stat-label">Valeur stock</span>
-                                <span class="badge-2026 info">EUR</span>
+                                <span class="badge-2026 info">${window.store?.state?.settings?.currency || 'CHF'}</span>
                             </div>
-                            <div class="stat-value">${fmt(totalCompValue, 'EUR')}</div>
+                            <div class="stat-value">${fmt(totalCompValue, window.store?.state?.settings?.currency || 'CHF')}</div>
                         </div>
                         <div class="stat-card-2026">
                             <div class="flex items-center justify-between">
@@ -26598,14 +26618,14 @@ td{padding:12px;border-bottom:1px solid #eee}
                     <form id="repair-form" class="space-y-4" onsubmit="event.preventDefault(); window.ui.submitRepair('${existing ? existing.id : ''}');">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div>
-                                <label class="text-xs text-gray-400">Type de bijou</label>
+                                <label class="text-xs text-gray-500">Type de bijou</label>
                                 <select id="rep-type" class="w-full mt-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg">
                                     ${['Bague','Collier','Bracelet','Montre','Boucles','Pendentif','Broche','Autre'].map(t =>
                                         `<option value="${t}" ${existing?.itemType === t ? 'selected' : ''}>${t}</option>`).join('')}
                                 </select>
                             </div>
                             <div>
-                                <label class="text-xs text-gray-400">Priorité</label>
+                                <label class="text-xs text-gray-500">Priorité</label>
                                 <select id="rep-priority" class="w-full mt-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg">
                                     <option value="low" ${existing?.priority === 'low' ? 'selected' : ''}>Basse</option>
                                     <option value="normal" ${!existing || existing?.priority === 'normal' ? 'selected' : ''}>Normale</option>
@@ -26615,18 +26635,18 @@ td{padding:12px;border-bottom:1px solid #eee}
                             </div>
                         </div>
                         <div>
-                            <label class="text-xs text-gray-400">Description du bijou *</label>
+                            <label class="text-xs text-gray-500">Description du bijou *</label>
                             <input id="rep-description" required type="text" placeholder="ex: Bague solitaire or blanc 18k avec diamant 0.5ct"
                                    value="${esc(existing?.itemDescription || '')}"
                                    class="w-full mt-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg">
                         </div>
                         <div>
-                            <label class="text-xs text-gray-400">Problème / intervention demandée *</label>
+                            <label class="text-xs text-gray-500">Problème / intervention demandée *</label>
                             <textarea id="rep-issue" required rows="3" placeholder="ex: Redimensionner (taille 52 → 54) + polissage"
                                       class="w-full mt-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg">${esc(existing?.issue || '')}</textarea>
                         </div>
                         <div>
-                            <label class="text-xs text-gray-400">Client</label>
+                            <label class="text-xs text-gray-500">Client</label>
                             <select id="rep-client" class="w-full mt-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg">
                                 <option value="">— Sans client associé —</option>
                                 ${clients.map(c => `<option value="${c.id}" ${existing?.clientId === c.id ? 'selected' : ''}>${esc(c.firstName)} ${esc(c.lastName)} ${c.phone ? `(${esc(c.phone)})` : ''}</option>`).join('')}
@@ -26634,23 +26654,23 @@ td{padding:12px;border-bottom:1px solid #eee}
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                             <div>
-                                <label class="text-xs text-gray-400">Devis estimé</label>
+                                <label class="text-xs text-gray-500">Devis estimé</label>
                                 <input id="rep-price" type="number" min="0" step="0.01" value="${existing?.estimatedPrice || 0}"
                                        class="w-full mt-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg">
                             </div>
                             <div>
-                                <label class="text-xs text-gray-400">Acompte</label>
+                                <label class="text-xs text-gray-500">Acompte</label>
                                 <input id="rep-deposit" type="number" min="0" step="0.01" value="${existing?.deposit || 0}"
                                        class="w-full mt-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg">
                             </div>
                             <div>
-                                <label class="text-xs text-gray-400">Date prévue</label>
+                                <label class="text-xs text-gray-500">Date prévue</label>
                                 <input id="rep-estdate" type="date" value="${existing?.estimatedDate ? existing.estimatedDate.slice(0, 10) : ''}"
                                        class="w-full mt-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg">
                             </div>
                         </div>
                         <div>
-                            <label class="text-xs text-gray-400">Notes internes</label>
+                            <label class="text-xs text-gray-500">Notes internes</label>
                             <textarea id="rep-notes" rows="2" placeholder="Notes atelier (non visible par le client)"
                                       class="w-full mt-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg">${esc(existing?.internalNotes || '')}</textarea>
                         </div>
@@ -26741,47 +26761,47 @@ td{padding:12px;border-bottom:1px solid #eee}
                     </div>
                     <div class="space-y-3">
                         <div class="glass-panel p-3 rounded-lg border border-white/10">
-                            <div class="text-xs text-gray-400 mb-1">Description</div>
+                            <div class="text-xs text-gray-500 mb-1">Description</div>
                             <div class="font-semibold">${esc(r.itemDescription)}</div>
                         </div>
                         <div class="glass-panel p-3 rounded-lg border border-white/10">
-                            <div class="text-xs text-gray-400 mb-1">Problème / intervention</div>
+                            <div class="text-xs text-gray-500 mb-1">Problème / intervention</div>
                             <div>${esc(r.issue)}</div>
                         </div>
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
                             <div class="glass-panel p-3 rounded-lg border border-white/10">
-                                <div class="text-xs text-gray-400">Devis</div>
+                                <div class="text-xs text-gray-500">Devis</div>
                                 <div class="font-bold">${formatCurrency(r.estimatedPrice)}</div>
                             </div>
                             <div class="glass-panel p-3 rounded-lg border border-white/10">
-                                <div class="text-xs text-gray-400">Acompte</div>
+                                <div class="text-xs text-gray-500">Acompte</div>
                                 <div class="font-bold">${formatCurrency(r.deposit)}</div>
                             </div>
                             <div class="glass-panel p-3 rounded-lg border border-white/10">
-                                <div class="text-xs text-gray-400">Date prévue</div>
+                                <div class="text-xs text-gray-500">Date prévue</div>
                                 <div class="font-bold">${r.estimatedDate ? formatDate(r.estimatedDate) : '—'}</div>
                             </div>
                             <div class="glass-panel p-3 rounded-lg border border-white/10">
-                                <div class="text-xs text-gray-400">Statut</div>
+                                <div class="text-xs text-gray-500">Statut</div>
                                 <div class="font-bold text-brand">${statusLabels[r.status]}</div>
                             </div>
                         </div>
                         ${r.internalNotes ? `
                             <div class="glass-panel p-3 rounded-lg border border-white/10">
-                                <div class="text-xs text-gray-400 mb-1">Notes internes</div>
+                                <div class="text-xs text-gray-500 mb-1">Notes internes</div>
                                 <div class="text-sm italic opacity-80">${esc(r.internalNotes)}</div>
                             </div>
                         ` : ''}
                         <!-- Historique -->
                         <div class="glass-panel p-3 rounded-lg border border-white/10">
-                            <div class="text-xs text-gray-400 mb-2">Historique</div>
+                            <div class="text-xs text-gray-500 mb-2">Historique</div>
                             <div class="space-y-2">
                                 ${(r.history || []).slice().reverse().map(h => `
                                     <div class="flex items-start gap-2 text-sm">
                                         <div class="w-2 h-2 rounded-full bg-brand mt-1.5 flex-shrink-0"></div>
                                         <div class="flex-1">
                                             <div class="font-semibold">${statusLabels[h.status] || h.status}</div>
-                                            <div class="text-xs text-gray-400">${window.formatDate ? window.formatDate(h.at, 'datetime') : new Date(h.at).toLocaleString('fr-CH')}</div>
+                                            <div class="text-xs text-gray-500">${window.formatDate ? window.formatDate(h.at, 'datetime') : new Date(h.at).toLocaleString('fr-CH')}</div>
                                             ${h.note ? `<div class="text-xs opacity-80 mt-0.5">${esc(h.note)}</div>` : ''}
                                         </div>
                                     </div>
@@ -27022,21 +27042,21 @@ td{padding:12px;border-bottom:1px solid #eee}
                     </div>
                     <div class="space-y-4">
                         <div>
-                            <label class="text-xs text-gray-400">Client *</label>
+                            <label class="text-xs text-gray-500">Client *</label>
                             <select id="res-client" required class="w-full mt-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg">
                                 <option value="">— Sélectionner un client —</option>
                                 ${clients.map(c => `<option value="${c.id}">${esc(c.firstName)} ${esc(c.lastName)}</option>`).join('')}
                             </select>
                         </div>
                         <div>
-                            <label class="text-xs text-gray-400">Produits réservés *</label>
+                            <label class="text-xs text-gray-500">Produits réservés *</label>
                             <div class="mt-1 space-y-2 max-h-64 overflow-y-auto bg-white/5 rounded-lg p-3">
                                 ${products.filter(p => (Number(p.stock) || 0) > 0).map(p => `
                                     <label class="flex items-center gap-2 p-2 hover:bg-white/5 rounded cursor-pointer">
                                         <input type="checkbox" class="res-product-cb" data-id="${p.id}" data-name="${esc(p.name)}" data-price="${p.price}">
                                         <div class="flex-1">
                                             <div class="font-semibold text-sm">${esc(p.name)}</div>
-                                            <div class="text-xs text-gray-400">${formatCurrency(p.price)} · Stock ${p.stock}</div>
+                                            <div class="text-xs text-gray-500">${formatCurrency(p.price)} · Stock ${p.stock}</div>
                                         </div>
                                         <input type="number" min="1" value="1" class="res-product-qty w-16 px-2 py-1 bg-white/5 rounded text-sm" data-id="${p.id}">
                                     </label>
@@ -27045,18 +27065,18 @@ td{padding:12px;border-bottom:1px solid #eee}
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div>
-                                <label class="text-xs text-gray-400">Durée (jours)</label>
+                                <label class="text-xs text-gray-500">Durée (jours)</label>
                                 <input id="res-days" type="number" min="1" max="90" value="${window.store.state.settings.reservationDefaultDays || 7}"
                                        class="w-full mt-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg">
                             </div>
                             <div>
-                                <label class="text-xs text-gray-400">Acompte versé</label>
+                                <label class="text-xs text-gray-500">Acompte versé</label>
                                 <input id="res-deposit" type="number" min="0" step="0.01" value="0"
                                        class="w-full mt-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg">
                             </div>
                         </div>
                         <div>
-                            <label class="text-xs text-gray-400">Notes</label>
+                            <label class="text-xs text-gray-500">Notes</label>
                             <textarea id="res-notes" rows="2" placeholder="ex: Prendre la montre pour essayer, revient samedi"
                                       class="w-full mt-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg"></textarea>
                         </div>
@@ -27125,7 +27145,7 @@ td{padding:12px;border-bottom:1px solid #eee}
                         <div><strong>Expire :</strong> ${window.formatDate ? window.formatDate(r.expiresAt, 'datetime') : new Date(r.expiresAt).toLocaleString('fr-CH')}</div>
                         <div><strong>Statut :</strong> ${r.status}</div>
                         <div class="glass-panel p-3 rounded-lg border border-white/10">
-                            <div class="text-xs text-gray-400 mb-2">Produits réservés</div>
+                            <div class="text-xs text-gray-500 mb-2">Produits réservés</div>
                             ${(r.items || []).map(i => `
                                 <div class="flex justify-between text-sm py-1 border-b border-white/5 last:border-0">
                                     <span>${esc(i.name)} ×${i.qty}</span>
@@ -27202,7 +27222,7 @@ td{padding:12px;border-bottom:1px solid #eee}
                             ${esc(c.phone || 'Pas de numéro enregistré')}
                         </div>
                         <div>
-                            <label class="text-xs text-gray-400">Template</label>
+                            <label class="text-xs text-gray-500">Template</label>
                             <select id="msg-template" onchange="window.ui._updateMessageText('${clientId}', ${JSON.stringify(extraCtx).replace(/"/g, '&quot;')})" class="w-full mt-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg">
                                 <option value="sale" ${templateKey==='sale'?'selected':''}>Remerciement vente</option>
                                 <option value="repairReady" ${templateKey==='repairReady'?'selected':''}>Réparation prête</option>
@@ -27214,7 +27234,7 @@ td{padding:12px;border-bottom:1px solid #eee}
                             </select>
                         </div>
                         <div>
-                            <label class="text-xs text-gray-400">Message</label>
+                            <label class="text-xs text-gray-500">Message</label>
                             <textarea id="msg-text" rows="5" class="w-full mt-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg font-mono text-sm">${esc(initialText)}</textarea>
                             <div class="text-xs text-gray-500 mt-1"><span id="msg-chars">${initialText.length}</span> caractères</div>
                         </div>
@@ -27303,7 +27323,7 @@ td{padding:12px;border-bottom:1px solid #eee}
                                     <div class="glass-panel p-3 rounded-lg flex items-center justify-between gap-3 flex-wrap">
                                         <div class="flex-1 min-w-[180px]">
                                             <div class="font-semibold">${esc(c.firstName)} ${esc(c.lastName)}</div>
-                                            <div class="text-xs text-gray-400">${c.daysUntilBirthday === 0 ? '🎂 AUJOURD\'HUI' : `dans ${c.daysUntilBirthday} jour(s)`} · ${esc(c.phone || 'pas de tel')}</div>
+                                            <div class="text-xs text-gray-500">${c.daysUntilBirthday === 0 ? '🎂 AUJOURD\'HUI' : `dans ${c.daysUntilBirthday} jour(s)`} · ${esc(c.phone || 'pas de tel')}</div>
                                         </div>
                                         ${c.phone ? `
                                             <button onclick="window.ui.showMessageComposer('${c.id}', 'birthday')" class="px-3 py-1.5 bg-pink-500/10 text-pink-400 rounded-lg text-sm flex items-center gap-1"><i data-lucide="send" class="w-4 h-4"></i> Envoyer vœux</button>
@@ -27321,7 +27341,7 @@ td{padding:12px;border-bottom:1px solid #eee}
                                     <div class="glass-panel p-3 rounded-lg flex items-center justify-between gap-3 flex-wrap">
                                         <div class="flex-1 min-w-[180px]">
                                             <div class="font-semibold">${esc(c.firstName)} ${esc(c.lastName)}</div>
-                                            <div class="text-xs text-gray-400">Dernier contact il y a ${c.daysSincePurchase} jours · ${formatCurrency(c.totalSpent || 0)} au total</div>
+                                            <div class="text-xs text-gray-500">Dernier contact il y a ${c.daysSincePurchase} jours · ${formatCurrency(c.totalSpent || 0)} au total</div>
                                         </div>
                                         ${c.phone ? `
                                             <button onclick="window.ui.showMessageComposer('${c.id}', 'reminder')" class="px-3 py-1.5 bg-amber-500/10 text-amber-400 rounded-lg text-sm flex items-center gap-1"><i data-lucide="send" class="w-4 h-4"></i> Relancer</button>
@@ -27379,7 +27399,7 @@ td{padding:12px;border-bottom:1px solid #eee}
                                         <div class="flex-1 flex flex-col items-center gap-1">
                                             <div class="w-full rounded-t ${isPeak ? 'bg-gradient-to-t from-amber-500 to-amber-400' : 'bg-gradient-to-t from-brand to-brand/40'}"
                                                  style="height: ${h}%" title="${formatCurrency(m.ca)}"></div>
-                                            <div class="text-[10px] text-gray-400">${monthNames[i]}</div>
+                                            <div class="text-[10px] text-gray-500">${monthNames[i]}</div>
                                         </div>
                                     `;
                                 }).join('')}
@@ -27393,7 +27413,7 @@ td{padding:12px;border-bottom:1px solid #eee}
                                     <div class="glass-panel p-3 rounded-lg flex items-center justify-between gap-3 ${ev.isPrepTime ? 'border border-amber-500/40 bg-amber-500/5' : ''}">
                                         <div class="flex-1">
                                             <div class="font-semibold">${esc(ev.name)}</div>
-                                            <div class="text-xs text-gray-400">${formatDate(ev.date)} — dans ${ev.daysUntil} jour(s)</div>
+                                            <div class="text-xs text-gray-500">${formatDate(ev.date)} — dans ${ev.daysUntil} jour(s)</div>
                                         </div>
                                         ${ev.isPrepTime ? `<span class="px-2 py-0.5 text-xs bg-amber-500/20 text-amber-400 rounded-full">⚠ Préparez-vous</span>` : ''}
                                     </div>
@@ -27413,7 +27433,7 @@ td{padding:12px;border-bottom:1px solid #eee}
                         ` : ''}
                         <!-- Prévision -->
                         <div class="glass-panel p-4 rounded-lg border border-brand/40">
-                            <div class="text-xs text-gray-400">Prévision mois prochain (${monthNames[data.forecast.month]})</div>
+                            <div class="text-xs text-gray-500">Prévision mois prochain (${monthNames[data.forecast.month]})</div>
                             <div class="text-3xl font-bold mt-1">${formatCurrency(data.forecast.expectedCA)}</div>
                             <div class="text-xs mt-1">
                                 ${data.forecast.trend === 'peak' ? '<span class="text-amber-400">📈 Pic historique attendu</span>' :
@@ -27465,19 +27485,19 @@ td{padding:12px;border-bottom:1px solid #eee}
                     <!-- KPIs -->
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                         <div class="glass-panel p-3 rounded-lg">
-                            <div class="text-xs text-gray-400">CA TTC</div>
+                            <div class="text-xs text-gray-500">CA TTC</div>
                             <div class="text-xl font-bold">${formatCurrency(data.gross)}</div>
                         </div>
                         <div class="glass-panel p-3 rounded-lg">
-                            <div class="text-xs text-gray-400">Coût produits</div>
+                            <div class="text-xs text-gray-500">Coût produits</div>
                             <div class="text-xl font-bold text-red-400">${formatCurrency(data.cost)}</div>
                         </div>
                         <div class="glass-panel p-3 rounded-lg">
-                            <div class="text-xs text-gray-400">TVA (${window.store.state.settings.defaultVatRate}%)</div>
+                            <div class="text-xs text-gray-500">TVA (${window.store.state.settings.defaultVatRate}%)</div>
                             <div class="text-xl font-bold text-amber-400">${formatCurrency(data.vat)}</div>
                         </div>
                         <div class="glass-panel p-3 rounded-lg border border-emerald-500/40">
-                            <div class="text-xs text-gray-400">Marge nette</div>
+                            <div class="text-xs text-gray-500">Marge nette</div>
                             <div class="text-xl font-bold text-emerald-400">${formatCurrency(data.netMargin)}</div>
                             <div class="text-xs text-emerald-400">${data.marginRate.toFixed(1)}%</div>
                         </div>
@@ -27520,7 +27540,7 @@ td{padding:12px;border-bottom:1px solid #eee}
                                         <div class="font-semibold">${esc(c.name)}</div>
                                         <div class="text-emerald-400">${c.marginRate.toFixed(0)}%</div>
                                     </div>
-                                    <div class="text-xs text-gray-400 mt-1">CA ${formatCurrency(c.ca)} · Marge ${formatCurrency(c.margin)}</div>
+                                    <div class="text-xs text-gray-500 mt-1">CA ${formatCurrency(c.ca)} · Marge ${formatCurrency(c.margin)}</div>
                                 </div>
                             `).join('')}
                         </div>
@@ -27561,7 +27581,7 @@ td{padding:12px;border-bottom:1px solid #eee}
                                  onerror="this.replaceWith(Object.assign(document.createElement('div'), {textContent:'QR indisponible hors-ligne', className:'text-gray-600 p-6 text-center'}))">
                         </div>
                         <div>
-                            <label class="text-xs text-gray-400">URL partageable</label>
+                            <label class="text-xs text-gray-500">URL partageable</label>
                             <input type="text" readonly value="${esc(url)}" class="w-full mt-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg font-mono text-xs"
                                    onclick="this.select()">
                         </div>
@@ -27579,7 +27599,7 @@ td{padding:12px;border-bottom:1px solid #eee}
                                 </button>
                             `}
                         </div>
-                        <div class="text-xs text-gray-400 text-center">Le client pourra consulter son historique, ses SAV et ses réservations.</div>
+                        <div class="text-xs text-gray-500 text-center">Le client pourra consulter son historique, ses SAV et ses réservations.</div>
                     </div>
                 </div>
             `;
@@ -27616,17 +27636,17 @@ td{padding:12px;border-bottom:1px solid #eee}
                         <div class="glass-panel p-4 rounded-xl">
                             <i data-lucide="shopping-bag" class="w-5 h-5 text-brand mb-1"></i>
                             <div class="text-2xl font-bold">${sales.length}</div>
-                            <div class="text-xs text-gray-400">Achats</div>
+                            <div class="text-xs text-gray-500">Achats</div>
                         </div>
                         <div class="glass-panel p-4 rounded-xl">
                             <i data-lucide="wrench" class="w-5 h-5 text-amber-400 mb-1"></i>
                             <div class="text-2xl font-bold">${repairs.filter(r => r.status !== 'delivered' && r.status !== 'cancelled').length}</div>
-                            <div class="text-xs text-gray-400">SAV en cours</div>
+                            <div class="text-xs text-gray-500">SAV en cours</div>
                         </div>
                         <div class="glass-panel p-4 rounded-xl">
                             <i data-lucide="bookmark" class="w-5 h-5 text-emerald-400 mb-1"></i>
                             <div class="text-2xl font-bold">${reservations.length}</div>
-                            <div class="text-xs text-gray-400">Réservations</div>
+                            <div class="text-xs text-gray-500">Réservations</div>
                         </div>
                     </div>
 
@@ -27640,7 +27660,7 @@ td{padding:12px;border-bottom:1px solid #eee}
                                     </div>
                                     <div class="font-bold text-brand ml-2 whitespace-nowrap">${formatCurrency(s.total)}</div>
                                 </div>
-                                <div class="text-xs text-gray-400 mt-1">${formatDate(s.date)}</div>
+                                <div class="text-xs text-gray-500 mt-1">${formatDate(s.date)}</div>
                             </div>
                         `).join('')}
                     </div>
@@ -27653,7 +27673,7 @@ td{padding:12px;border-bottom:1px solid #eee}
                                     <div class="flex justify-between">
                                         <div>
                                             <div class="font-semibold text-sm">${esc(r.itemDescription)}</div>
-                                            <div class="text-xs text-gray-400">${esc(r.ref)} · Prévu ${r.estimatedDate ? formatDate(r.estimatedDate) : '—'}</div>
+                                            <div class="text-xs text-gray-500">${esc(r.ref)} · Prévu ${r.estimatedDate ? formatDate(r.estimatedDate) : '—'}</div>
                                         </div>
                                         <div class="px-2 py-1 text-xs rounded-full bg-brand/20 text-brand self-start">${r.status}</div>
                                     </div>

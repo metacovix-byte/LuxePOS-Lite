@@ -1,6 +1,6 @@
 {
   "name": "luxepos-lite",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "LuxePOS Lite — MVP saisie & stock pour artisanes bijoutières",
   "main": "playwright.config.js",
   "directories": {

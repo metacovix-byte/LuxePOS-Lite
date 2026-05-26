@@ -5,6 +5,51 @@ Toutes les versions notables de LuxePOS Lite sont documentées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 Versioning : [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] — 2026-05-25 — Hotfix synthèse 8 agents audit parallèles
+
+Audit massif par 8 agents indépendants (code, perf, a11y, UX mobile/tablet/desktop,
+collisions visuelles, copy FR) a identifié 24 fixes prioritaires. Hotfix applique
+les P0 (corruption données) + P1 critiques (UI bloquant) + P2 cohérence devise +
+P3 contraste a11y rapide.
+
+### 🔴 P0 — Bugs corruption données (silencieux, destructeurs)
+- **`completeSale` décrémente maintenant `stockByLocation[]`** : avant, seul
+  `product.stock` était décrémenté → compteurs multi-POS (Atelier/Annemasse/Genève)
+  dérivaient à chaque vente. Corrigé en cherchant le slot par `cartItem.locationId`
+  ou fallback `product.locationId`.
+- **`deleteProduct` détecte enfin les ventes liées** : `(s.items).some(i =>
+  i.productId === id)` matchait jamais car `completeSale` push avec `id` (cart
+  spread), pas `productId`. Fix : tester `i.id === id || i.productId === id`.
+- **`convertReservationToSale` n'écrase plus `currentClient`** : assignait
+  l'objet client complet alors que partout ailleurs c'est un string ID → stats
+  client jamais MAJ pour ventes issues de réservations. Fix : `res.clientId`.
+- **`client.totalSpent` coalesce `|| 0`** + idem `purchaseCount` : empêche NaN
+  propagation si client créé/importé sans champs initialisés.
+
+### 🔴 P1 — UI bloquant mobile
+- **Bottom nav 6 → 5 items sur mobile** : bouton "Commandes Insta/WhatsApp"
+  caché en mobile (`hidden md:flex`), accessible via menu Plus. Évite la
+  troncature des labels ("Acc...", "Ven...", "Cat...") à 375px.
+
+### 🔴 P2 — Cohérence devise / copy
+- **Atelier "Valeur stock"** : devise dynamique (`settings.currency`) au lieu
+  de hardcoder `EUR`. Cohérent avec le reste de l'app (CHF par défaut).
+- **Modal "Objectif CA mensuel"** : libellé `Nouvelle cible (€)` → `Nouvelle
+  cible (${currency})`.
+- **Dropdown paiement** : `💵 Cash` → `💵 Espèces` (anglicisme retiré, valeur
+  HTML reste `Espèces` donc rétrocompatible avec les ventes existantes).
+
+### 🔴 P3 — Contraste a11y (WCAG AA)
+- **48 helper texts** : `text-xs text-gray-400` → `text-gray-500` (ratio
+  passe de 3.55:1 à 5.95:1, conforme WCAG AA pour body text). Ciblé sur
+  helper text seulement, préserve les nav décoratifs.
+
+### Reporté en v1.1 (simplification UX guidée par retours testeuses)
+- FAB repositionnement avancé, Inventory layout 768px, Modal scroll, TVA
+  suisse multi-taux, purge demo data luxe, sidebar labels, role="dialog"
+  sur 12 modales, min-h-11 cibles tap, SheetJS lazy-load, virtualisation
+  product cards.
+
 ## [1.0.2] — 2026-05-25 — URGENT : rollback CSP (Tailwind cassé sur binaire Tauri)
 
 ### Corrigé

@@ -5,6 +5,43 @@ Toutes les versions notables de LuxePOS Lite sont documentées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 Versioning : [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] — 2026-05-26 — APK Android + retrait Lumi (assistant IA)
+
+### Ajouté — APK Android
+Le `.tar.gz` présent dans la release v1.0.3 était le format **macOS**
+(.app.tar.gz pour auto-updater), pas Android. Maëlle a essayé de l'installer
+sur Android → "fichier non supporté".
+
+**Solution** : config Capacitor + workflow CI Android dédié.
+
+- `capacitor.config.json` créé avec `appId: ch.luxepos.lite` (distinct de
+  `ch.luxepos.app` du LuxePOS principal — les 2 apks coexistent sur le même
+  téléphone).
+- `/android/` (projet Gradle Capacitor) cloné depuis LuxePOS-Web, namespace
+  et applicationId mis à jour, `app_name` = "LuxePOS Lite".
+- `assets/public/luxepos-lite.html` + `index.html` pointent vers le HTML Lite.
+- Nouveau workflow `.github/workflows/build-android.yml` :
+  * Trigger sur tag `v*` (en parallèle de release.yml Windows/Mac)
+  * Setup JDK 17 + Android SDK
+  * `./gradlew assembleDebug` → APK debug (~30 MB)
+  * Renommé `LuxePOS-Lite-<version>-android.apk` + attaché à la release.
+
+Installation sur Android : activer "Sources inconnues" dans Paramètres, ouvrir
+l'APK téléchargé. Pas d'update automatique sur APK debug (release future).
+
+### Retiré — Lumi (assistant IA local)
+Devait être retiré dès le scope MVP initial mais Lite v1.0.0-3 contenait
+encore la classe complète. Maëlle a re-flaggé :
+
+- `window.lumi = new Lumi()` → `window.lumi = null` (instance désactivée).
+  Tous les call sites utilisent `?.method?.()` donc no-op safe.
+- `<div id="lumi-bubble">` du DOM retiré (plus de bulle 💎 bottom-right).
+- La classe Lumi reste dans le code (~800 lignes, dead code en MVP). Cleanup
+  complet planifié en v1.1 simplification.
+
+### Reporté en v1.0.5
+- Calculatrice flottante (déplaçable + minimisable badge).
+
 ## [1.0.3] — 2026-05-25 — Hotfix synthèse 8 agents audit parallèles
 
 Audit massif par 8 agents indépendants (code, perf, a11y, UX mobile/tablet/desktop,

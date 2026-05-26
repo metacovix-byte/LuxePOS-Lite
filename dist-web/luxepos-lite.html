@@ -320,7 +320,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
          ═══════════════════════════════════════════════════════════════════════ -->
     <script>
         const APP_CONFIG = Object.freeze({
-            VERSION: '1.0.3',
+            VERSION: '1.0.4',
             EDITION: 'Lite',   // distinct des installs LuxePOS completes
 
             // ── Durées (en millisecondes)
@@ -29560,7 +29560,12 @@ Raccourci : <kbd style="padding:2px 6px; background:rgba(255,255,255,0.1); borde
     window.store = new Store();
     window.ui = new UI();
     window.router = new Router();
-    window.lumi = new Lumi();
+    // v1.0.4 Lite — Lumi (assistant IA) désactivé pour MVP testeuses.
+    // La classe Lumi reste définie en haut mais n'est PAS instanciée.
+    // Tous les call sites utilisent l'optional chaining `window.lumi?.method?.()`
+    // donc échouent silencieusement (no-op) sans bruit en console.
+    // Réactivation prévue en v2.0 si retours testeuses la demandent.
+    window.lumi = null;
 
     // Abonnement aux changements d'état
     window.store.subscribe((state) => {
@@ -30625,16 +30630,9 @@ Raccourci : <kbd style="padding:2px 6px; background:rgba(255,255,255,0.1); borde
     })();
     </script>
 
-    <!-- ───────────────────────────────────────────────
-         v4.9+ : Lumi — assistant IA local (MVP)
-    ─────────────────────────────────────────────── -->
-    <div id="lumi-bubble" role="button" aria-label="Ouvrir l'assistant Lumi" tabindex="0"
-         onclick="window.lumi && window.lumi.toggle()"
-         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.lumi&&window.lumi.toggle();}"
-         title="Lumi — votre concierge (Alt+L)">
-        <span aria-hidden="true">💎</span>
-        <span class="lumi-dot" aria-hidden="true"></span>
-    </div>
+    <!-- v1.0.4 Lite — Bulle Lumi retirée du DOM (assistant IA désactivé pour MVP).
+         Réactivation prévue en v2.0 si retours testeuses la demandent. -->
+    <!-- <div id="lumi-bubble">…</div> -->
 
 </body>
 </html>

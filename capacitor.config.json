@@ -1,0 +1,31 @@
+{
+    "appId": "ch.luxepos.lite",
+    "appName": "LuxePOS Lite",
+    "webDir": "dist-web",
+    "bundledWebRuntime": false,
+    "server": {
+        "androidScheme": "https",
+        "iosScheme": "luxeposlite",
+        "cleartext": false
+    },
+    "plugins": {
+        "Filesystem": {
+            "iosScheme": "luxeposlite"
+        },
+        "Preferences": {
+            "group": "ch.luxepos.lite"
+        }
+    },
+    "android": {
+        "buildOptions": {
+            "keystorePath": null,
+            "keystorePassword": null,
+            "keystoreAlias": null,
+            "keystoreAliasPassword": null,
+            "releaseType": "APK"
+        }
+    },
+    "ios": {
+        "scheme": "LuxePOS Lite"
+    }
+}

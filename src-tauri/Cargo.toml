@@ -1,6 +1,6 @@
 [package]
 name = "luxepos-lite"
-version = "1.0.3"
+version = "1.0.4"
 description = "LuxePOS Lite — Saisie & stock pour artisanes bijoutières (MVP)"
 authors = ["Maëlle"]
 edition = "2021"

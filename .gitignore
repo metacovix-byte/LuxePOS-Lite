@@ -70,3 +70,10 @@ photo-map.json
 marketing/demo/node_modules/
 marketing/demo/output/
 src-tauri/gen/
+
+# Android Capacitor (Gradle artifacts)
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+android/capacitor-cordova-android-plugins/build/

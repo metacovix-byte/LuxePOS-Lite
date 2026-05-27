@@ -1,6 +1,6 @@
 {
   "name": "luxepos-lite",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "LuxePOS Lite — MVP saisie & stock pour artisanes bijoutières",
   "main": "playwright.config.js",
   "directories": {
@@ -11,7 +11,13 @@
     "tauri": "tauri",
     "inline-vendors": "node inline-vendors.js"
   },
-  "keywords": ["pos", "stock", "bijouterie", "artisanat", "mvp"],
+  "keywords": [
+    "pos",
+    "stock",
+    "bijouterie",
+    "artisanat",
+    "mvp"
+  ],
   "author": "Maëlle",
   "license": "MIT",
   "type": "commonjs",
@@ -21,7 +27,7 @@
     "@capacitor/core": "^8.3.1",
     "@capacitor/filesystem": "^8.1.2",
     "@capacitor/preferences": "^8.0.1",
-    "@playwright/test": "^1.59.1",
+    "@playwright/test": "^1.60.0",
     "@tauri-apps/cli": "^2.11.0"
   },
   "dependencies": {

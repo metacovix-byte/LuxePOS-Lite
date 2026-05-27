@@ -5,6 +5,34 @@ Toutes les versions notables de LuxePOS Lite sont documentées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 Versioning : [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.6] — 2026-05-28 — Calculatrice flottante (draggable + minimisable)
+
+### Ajouté — Calculatrice flottante
+Demande Mounir : la calculatrice était une modale plein-écran bloquante,
+impossible de voir l'inventaire en même temps. Maintenant :
+
+- **Panneau flottant** au lieu de modale : reste visible pendant qu'on
+  travaille sur d'autres pages (inventaire, POS, clients).
+- **Draggable** : barre titre déplaçable à la souris ou au doigt (touch).
+  Clamp aux bords du viewport pour ne jamais sortir de l'écran.
+- **Minimisable** : bouton `−` réduit la calculatrice en **badge compact**
+  (icône + dernière valeur) en bas à droite. Un clic restaure le panneau
+  à sa dernière position.
+- **Bouton %** ajouté : calcule les pourcentages contextuellement.
+  `150 + 30% =` donne `195` (30% de 150 = 45). Utile pour commissions
+  dépôt-vente (ex: 30% Annemasse, 25% Salon Genève).
+- **Arrondi propre** : `Math.round(result * 1e10) / 1e10` évite les
+  artifacts floating-point (`0.1 + 0.2 = 0.3`, pas `0.30000000000000004`).
+- Tip contextuel et Command Palette mis à jour.
+
+### Technique
+- CSS : `#calc-floating` (fixed, z-9998, 340px, shadow, spring-in anim)
+  + `#calc-badge` (fixed, pill, gradient indigo/violet).
+- JS : `_calcInitDrag(panel)` mouse+touch, `_calcMinimize()`,
+  `_calcRestore()`, `_calcClose()`, `calcInput('%')`.
+- Position mémorisée dans `this._calcPos` entre minimize/restore.
+- Mobile : largeur 100% - 16px sous 480px.
+
 ## [1.0.5] — 2026-05-26 — Fix permission gradlew (APK Android v1.0.4 raté)
 
 ### Corrigé

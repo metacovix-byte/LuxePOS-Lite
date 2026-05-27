@@ -320,7 +320,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
          ═══════════════════════════════════════════════════════════════════════ -->
     <script>
         const APP_CONFIG = Object.freeze({
-            VERSION: '1.0.5',
+            VERSION: '1.0.6',
             EDITION: 'Lite',   // distinct des installs LuxePOS completes
 
             // ── Durées (en millisecondes)
@@ -1412,6 +1412,88 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
         .anim-spring-in { animation: springIn 0.42s cubic-bezier(0.34, 1.56, 0.64, 1); }
         .anim-slide-up { animation: slideUpSpring 0.38s cubic-bezier(0.34, 1.56, 0.64, 1); }
         .anim-fade-slide { animation: fadeSlide 0.28s ease-out; }
+
+        /* ═══════════════════════════════════════════════════════════════════════
+         * v1.0.6 — CALCULATRICE FLOTTANTE (draggable + minimisable)
+         * ═══════════════════════════════════════════════════════════════════════ */
+        #calc-floating {
+            position: fixed;
+            z-index: 9998;
+            width: 340px;
+            max-width: calc(100vw - 24px);
+            border-radius: 16px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.08);
+            animation: springIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transition: box-shadow 0.2s;
+            overflow: hidden;
+        }
+        #calc-floating:hover { box-shadow: 0 24px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.12); }
+        #calc-floating .calc-titlebar {
+            cursor: grab;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: linear-gradient(135deg, rgba(99,102,241,0.25), rgba(139,92,246,0.25));
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        #calc-floating .calc-titlebar:active { cursor: grabbing; }
+        #calc-floating .calc-titlebar .calc-title {
+            font-weight: 700;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        #calc-floating .calc-titlebar .calc-actions {
+            display: flex;
+            gap: 4px;
+        }
+        #calc-floating .calc-titlebar .calc-actions button {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            border: none;
+            background: rgba(255,255,255,0.08);
+            color: inherit;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s;
+        }
+        #calc-floating .calc-titlebar .calc-actions button:hover { background: rgba(255,255,255,0.18); }
+        #calc-floating .calc-body { padding: 12px 14px 14px; }
+
+        /* Badge minimisé */
+        #calc-badge {
+            position: fixed;
+            z-index: 9998;
+            bottom: 80px;
+            right: 16px;
+            width: auto;
+            min-width: 56px;
+            height: 48px;
+            border-radius: 24px;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.85rem;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            border: none;
+            animation: springIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        #calc-badge:hover { transform: scale(1.05); box-shadow: 0 10px 30px rgba(0,0,0,0.45); }
+        @media (max-width: 480px) {
+            #calc-floating { width: calc(100vw - 16px); right: 8px !important; left: 8px !important; }
+        }
 
         /* ═══════════════════════════════════════════════════════════════════════
          * v4.8 — SKELETON LOADERS polish
@@ -8838,7 +8920,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
         {
             page: 'all',
             icon: 'calculator',
-            text: 'La <strong>calculatrice</strong> intégrée (icône en nav) est utile pour estimer rapidement une remise ou un montant.'
+            text: 'La <strong>calculatrice flottante</strong> (icône en nav) est déplaçable et minimisable. Calcule remises, commissions (%), et montants sans quitter ta page.'
         }
     ];
 
@@ -16921,7 +17003,7 @@ service cloud.firestore {
                     { id: 'tool.pdf-month', icon: 'file-text', title: 'Rapport PDF du mois', sub: 'Imprimer', kw: 'rapport pdf mois mensuel', run: () => this.generatePDFReport?.('month') },
                     { id: 'tool.import-excel', icon: 'file-spreadsheet', title: 'Importer un Excel / CSV', sub: 'Z0. VENTES…xlsx', kw: 'importer excel csv xlsx', run: () => this.showImportExcelModal?.() },
                     { id: 'tool.export-json', icon: 'download', title: 'Exporter sauvegarde .json', sub: 'Backup complet', kw: 'export sauvegarde backup json', run: () => this.exportBackupJSON?.() },
-                    { id: 'tool.calculator', icon: 'calculator', title: 'Calculatrice', sub: '', kw: 'calculatrice calcul', run: () => this.openCalculator?.() },
+                    { id: 'tool.calculator', icon: 'calculator', title: 'Calculatrice flottante', sub: 'Draggable · minimisable · %', kw: 'calculatrice calcul pourcentage commission', run: () => this.openCalculator?.() },
                     { id: 'tool.audit', icon: 'activity', title: "Journal d'activité", sub: 'Audit log', kw: 'journal activite log audit historique', run: () => this.showAuditLog?.() },
                     { id: 'tool.top-clients', icon: 'crown', title: 'Top 10 clients', sub: 'Classement par CA', kw: 'top clients classement', run: () => this.showTopClientsModal?.() },
                     { id: 'tool.predict', icon: 'brain', title: 'Prédictions de stock', sub: '30 derniers jours', kw: 'predictions stock previsions ia', run: () => this.showStockPredictionsModal?.() },
@@ -23334,19 +23416,199 @@ ${template.message}
             }
         }
 
+        /**
+         * v1.0.6 — Calculatrice flottante, draggable et minimisable.
+         * - Panneau flottant au lieu d'une modale plein-écran
+         * - Barre titre draggable (souris + touch)
+         * - Bouton minimiser → badge compact (icône + dernier résultat)
+         * - Bouton fermer → supprime complètement
+         * - Si déjà ouverte, la restaure (pas de double)
+         */
         openCalculator() {
-            const modal = document.createElement('div');
-            modal.className = "fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in";
-            modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+            // Si badge minimisé existe, restaurer
+            const badge = document.getElementById('calc-badge');
+            if (badge) { this._calcRestore(); return; }
 
-            modal.innerHTML = `<div class="glass-panel w-full max-w-sm p-6 rounded-2xl relative shadow-2xl" onclick="event.stopPropagation()" style="background: var(--bg-primary); color: var(--text-primary);"><button class="absolute top-4 right-4 btn-press z-10" style="color: var(--text-secondary);" onclick="this.closest('.fixed').remove()"><i data-lucide="x" class="w-6 h-6"></i></button><h3 class="text-2xl font-bold mb-4 flex items-center gap-3"><span class="bg-gradient-to-r from-blue-500 to-purple-500 text-white w-10 h-10 rounded-lg flex items-center justify-center shadow-lg"><i data-lucide="calculator" class="w-5 h-5"></i></span>Calculatrice</h3><div class="space-y-4"><div id="calc-display" class="glass-panel p-6 rounded-xl text-right text-3xl font-bold font-mono" style="background: var(--bg-secondary); color: var(--text-primary);">0</div><div class="grid grid-cols-4 gap-2"><button onclick="window.ui.calcInput('C')" class="bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 p-4 rounded-xl font-bold transition-all btn-press">C</button><button onclick="window.ui.calcInput('/')" class="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 p-4 rounded-xl font-bold transition-all btn-press">/</button><button onclick="window.ui.calcInput('*')" class="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 p-4 rounded-xl font-bold transition-all btn-press">×</button><button onclick="window.ui.calcInput('⌫')" class="bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 border border-orange-500/30 p-4 rounded-xl font-bold transition-all btn-press">⌫</button><button onclick="window.ui.calcInput('7')" class="bg-white/10 hover:bg-white/20 p-4 rounded-xl font-bold transition-all btn-press" style="color: var(--text-primary);">7</button><button onclick="window.ui.calcInput('8')" class="bg-white/10 hover:bg-white/20 p-4 rounded-xl font-bold transition-all btn-press" style="color: var(--text-primary);">8</button><button onclick="window.ui.calcInput('9')" class="bg-white/10 hover:bg-white/20 p-4 rounded-xl font-bold transition-all btn-press" style="color: var(--text-primary);">9</button><button onclick="window.ui.calcInput('-')" class="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 p-4 rounded-xl font-bold transition-all btn-press">−</button><button onclick="window.ui.calcInput('4')" class="bg-white/10 hover:bg-white/20 p-4 rounded-xl font-bold transition-all btn-press" style="color: var(--text-primary);">4</button><button onclick="window.ui.calcInput('5')" class="bg-white/10 hover:bg-white/20 p-4 rounded-xl font-bold transition-all btn-press" style="color: var(--text-primary);">5</button><button onclick="window.ui.calcInput('6')" class="bg-white/10 hover:bg-white/20 p-4 rounded-xl font-bold transition-all btn-press" style="color: var(--text-primary);">6</button><button onclick="window.ui.calcInput('+')" class="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 p-4 rounded-xl font-bold transition-all btn-press">+</button><button onclick="window.ui.calcInput('1')" class="bg-white/10 hover:bg-white/20 p-4 rounded-xl font-bold transition-all btn-press" style="color: var(--text-primary);">1</button><button onclick="window.ui.calcInput('2')" class="bg-white/10 hover:bg-white/20 p-4 rounded-xl font-bold transition-all btn-press" style="color: var(--text-primary);">2</button><button onclick="window.ui.calcInput('3')" class="bg-white/10 hover:bg-white/20 p-4 rounded-xl font-bold transition-all btn-press" style="color: var(--text-primary);">3</button><button onclick="window.ui.calcInput('=')" class="bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 p-4 rounded-xl font-bold transition-all btn-press row-span-2">=</button><button onclick="window.ui.calcInput('0')" class="bg-white/10 hover:bg-white/20 p-4 rounded-xl font-bold transition-all btn-press col-span-2" style="color: var(--text-primary);">0</button><button onclick="window.ui.calcInput('.')" class="bg-white/10 hover:bg-white/20 p-4 rounded-xl font-bold transition-all btn-press" style="color: var(--text-primary);">.</button></div></div></div>`;
+            // Si déjà ouverte, focus
+            const existing = document.getElementById('calc-floating');
+            if (existing) { existing.style.animation = 'springIn 0.25s ease'; return; }
 
-            document.body.appendChild(modal);
-            lucide.createIcons();
+            const panel = document.createElement('div');
+            panel.id = 'calc-floating';
+            panel.style.cssText = 'background: var(--bg-primary); color: var(--text-primary); bottom: 80px; right: 16px;';
+
+            panel.innerHTML = `
+                <div class="calc-titlebar">
+                    <div class="calc-title">
+                        <span style="background: linear-gradient(135deg, #6366f1, #8b5cf6); width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                            <i data-lucide="calculator" class="w-4 h-4" style="color: white;"></i>
+                        </span>
+                        Calculatrice
+                    </div>
+                    <div class="calc-actions">
+                        <button onclick="window.ui._calcMinimize()" title="Minimiser">
+                            <i data-lucide="minus" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="window.ui._calcClose()" title="Fermer">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="calc-body">
+                    <div id="calc-display" style="background: var(--bg-secondary); color: var(--text-primary); border-radius: 12px; padding: 16px 20px; text-align: right; font-size: 1.75rem; font-weight: 700; font-family: ui-monospace, monospace; margin-bottom: 10px; min-height: 56px; display: flex; align-items: center; justify-content: flex-end; border: 1px solid rgba(255,255,255,0.06);">0</div>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+                        <button onclick="window.ui.calcInput('C')" class="bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 rounded-xl font-bold transition-all btn-press" style="padding: 14px 0;">C</button>
+                        <button onclick="window.ui.calcInput('/')" class="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 rounded-xl font-bold transition-all btn-press" style="padding: 14px 0;">/</button>
+                        <button onclick="window.ui.calcInput('*')" class="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 rounded-xl font-bold transition-all btn-press" style="padding: 14px 0;">×</button>
+                        <button onclick="window.ui.calcInput('⌫')" class="bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 border border-orange-500/30 rounded-xl font-bold transition-all btn-press" style="padding: 14px 0;">⌫</button>
+                        <button onclick="window.ui.calcInput('7')" class="bg-white/10 hover:bg-white/20 rounded-xl font-bold transition-all btn-press" style="padding: 14px 0; color: var(--text-primary);">7</button>
+                        <button onclick="window.ui.calcInput('8')" class="bg-white/10 hover:bg-white/20 rounded-xl font-bold transition-all btn-press" style="padding: 14px 0; color: var(--text-primary);">8</button>
+                        <button onclick="window.ui.calcInput('9')" class="bg-white/10 hover:bg-white/20 rounded-xl font-bold transition-all btn-press" style="padding: 14px 0; color: var(--text-primary);">9</button>
+                        <button onclick="window.ui.calcInput('-')" class="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 rounded-xl font-bold transition-all btn-press" style="padding: 14px 0;">−</button>
+                        <button onclick="window.ui.calcInput('4')" class="bg-white/10 hover:bg-white/20 rounded-xl font-bold transition-all btn-press" style="padding: 14px 0; color: var(--text-primary);">4</button>
+                        <button onclick="window.ui.calcInput('5')" class="bg-white/10 hover:bg-white/20 rounded-xl font-bold transition-all btn-press" style="padding: 14px 0; color: var(--text-primary);">5</button>
+                        <button onclick="window.ui.calcInput('6')" class="bg-white/10 hover:bg-white/20 rounded-xl font-bold transition-all btn-press" style="padding: 14px 0; color: var(--text-primary);">6</button>
+                        <button onclick="window.ui.calcInput('+')" class="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 rounded-xl font-bold transition-all btn-press" style="padding: 14px 0;">+</button>
+                        <button onclick="window.ui.calcInput('1')" class="bg-white/10 hover:bg-white/20 rounded-xl font-bold transition-all btn-press" style="padding: 14px 0; color: var(--text-primary);">1</button>
+                        <button onclick="window.ui.calcInput('2')" class="bg-white/10 hover:bg-white/20 rounded-xl font-bold transition-all btn-press" style="padding: 14px 0; color: var(--text-primary);">2</button>
+                        <button onclick="window.ui.calcInput('3')" class="bg-white/10 hover:bg-white/20 rounded-xl font-bold transition-all btn-press" style="padding: 14px 0; color: var(--text-primary);">3</button>
+                        <button onclick="window.ui.calcInput('=')" class="bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 rounded-xl font-bold transition-all btn-press" style="padding: 14px 0;">=</button>
+                        <button onclick="window.ui.calcInput('0')" class="bg-white/10 hover:bg-white/20 rounded-xl font-bold transition-all btn-press" style="padding: 14px 0; grid-column: span 2; color: var(--text-primary);">0</button>
+                        <button onclick="window.ui.calcInput('.')" class="bg-white/10 hover:bg-white/20 rounded-xl font-bold transition-all btn-press" style="padding: 14px 0; color: var(--text-primary);">.</button>
+                        <button onclick="window.ui.calcInput('%')" class="bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 border border-purple-500/30 rounded-xl font-bold transition-all btn-press" style="padding: 14px 0;">%</button>
+                    </div>
+                </div>`;
+
+            document.body.appendChild(panel);
+            lucide?.createIcons?.();
+            // Ne réinitialiser que si c'est une ouverture fraîche (pas une restauration)
+            if (!this._calcRestoring) {
+                this.calcValue = '0';
+                this.calcOperator = null;
+                this.calcPreviousValue = null;
+                this.calcNewNumber = true;
+            }
+
+            // ── Drag logic (mouse + touch) ──
+            this._calcInitDrag(panel);
+        }
+
+        /** Initialise le drag de la calculatrice (titlebar = poignée) */
+        _calcInitDrag(panel) {
+            const titlebar = panel.querySelector('.calc-titlebar');
+            let isDragging = false, startX = 0, startY = 0, origX = 0, origY = 0;
+
+            const getPos = () => {
+                const r = panel.getBoundingClientRect();
+                return { x: r.left, y: r.top };
+            };
+
+            const onStart = (clientX, clientY) => {
+                isDragging = true;
+                const pos = getPos();
+                startX = clientX; startY = clientY;
+                origX = pos.x; origY = pos.y;
+                panel.style.transition = 'none';
+            };
+
+            const onMove = (clientX, clientY) => {
+                if (!isDragging) return;
+                let newX = origX + (clientX - startX);
+                let newY = origY + (clientY - startY);
+                // Clamp to viewport
+                const maxX = window.innerWidth - panel.offsetWidth;
+                const maxY = window.innerHeight - panel.offsetHeight;
+                newX = Math.max(0, Math.min(newX, maxX));
+                newY = Math.max(0, Math.min(newY, maxY));
+                panel.style.left = newX + 'px';
+                panel.style.top = newY + 'px';
+                panel.style.right = 'auto';
+                panel.style.bottom = 'auto';
+            };
+
+            const onEnd = () => {
+                isDragging = false;
+                panel.style.transition = '';
+                // Mémoriser la position
+                this._calcPos = { left: panel.style.left, top: panel.style.top };
+            };
+
+            // Mouse events
+            titlebar.addEventListener('mousedown', (e) => {
+                if (e.target.closest('.calc-actions')) return;
+                e.preventDefault();
+                onStart(e.clientX, e.clientY);
+            });
+            document.addEventListener('mousemove', (e) => onMove(e.clientX, e.clientY));
+            document.addEventListener('mouseup', onEnd);
+
+            // Touch events (mobile)
+            titlebar.addEventListener('touchstart', (e) => {
+                if (e.target.closest('.calc-actions')) return;
+                const t = e.touches[0];
+                onStart(t.clientX, t.clientY);
+            }, { passive: true });
+            document.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+                const t = e.touches[0];
+                onMove(t.clientX, t.clientY);
+            }, { passive: true });
+            document.addEventListener('touchend', onEnd);
+        }
+
+        /** Minimise la calculatrice en badge compact */
+        _calcMinimize() {
+            const panel = document.getElementById('calc-floating');
+            if (!panel) return;
+
+            // Sauvegarder la position
+            this._calcPos = { left: panel.style.left, top: panel.style.top, right: panel.style.right, bottom: panel.style.bottom };
+            panel.remove();
+
+            // Créer le badge
+            const badge = document.createElement('button');
+            badge.id = 'calc-badge';
+            badge.onclick = () => this._calcRestore();
+            const displayVal = this.calcValue || '0';
+            badge.innerHTML = `<i data-lucide="calculator" class="w-5 h-5"></i><span>${displayVal.length > 12 ? displayVal.slice(0, 10) + '…' : displayVal}</span>`;
+            document.body.appendChild(badge);
+            lucide?.createIcons?.();
+        }
+
+        /** Restaure la calculatrice depuis le badge minimisé */
+        _calcRestore() {
+            const badge = document.getElementById('calc-badge');
+            if (badge) badge.remove();
+            this._calcRestoring = true;
+            this.openCalculator();
+            this._calcRestoring = false;
+            // Restaurer la position si mémorisée
+            if (this._calcPos) {
+                const panel = document.getElementById('calc-floating');
+                if (panel) {
+                    if (this._calcPos.left && this._calcPos.left !== 'auto') {
+                        panel.style.left = this._calcPos.left;
+                        panel.style.top = this._calcPos.top;
+                        panel.style.right = 'auto';
+                        panel.style.bottom = 'auto';
+                    }
+                }
+            }
+            // Restaurer la valeur
+            const display = document.getElementById('calc-display');
+            if (display && this.calcValue) display.textContent = this.calcValue;
+        }
+
+        /** Ferme complètement la calculatrice */
+        _calcClose() {
+            const panel = document.getElementById('calc-floating');
+            if (panel) { panel.style.animation = 'fadeSlide 0.2s ease reverse'; setTimeout(() => panel.remove(), 180); }
+            const badge = document.getElementById('calc-badge');
+            if (badge) badge.remove();
             this.calcValue = '0';
             this.calcOperator = null;
             this.calcPreviousValue = null;
-            this.calcNewNumber = true;
+            this._calcPos = null;
         }
 
         calcInput(input) {
@@ -23366,6 +23628,17 @@ ${template.message}
                 }
                 this.calcOperator = input;
                 this.calcPreviousValue = parseFloat(this.calcValue);
+                this.calcNewNumber = true;
+            } else if (input === '%') {
+                // Pourcentage : si opérateur en cours → % de la valeur précédente
+                // ex: 150 + 30% = 150 + 45 = 195 (30% de 150)
+                // sinon : divise par 100
+                const val = parseFloat(this.calcValue);
+                if (this.calcOperator && this.calcPreviousValue !== null) {
+                    this.calcValue = ((this.calcPreviousValue * val) / 100).toString();
+                } else {
+                    this.calcValue = (val / 100).toString();
+                }
                 this.calcNewNumber = true;
             } else if (input === '=') {
                 this.calcExecute();
@@ -23398,6 +23671,8 @@ ${template.message}
                     case '/': result = current !== 0 ? this.calcPreviousValue / current : 0; break;
                 }
 
+                // Arrondi propre pour éviter les floating point artifacts (0.1+0.2=0.300000004)
+                result = Math.round(result * 1e10) / 1e10;
                 this.calcValue = result.toString();
                 this.calcPreviousValue = null;
                 this.calcNewNumber = true;

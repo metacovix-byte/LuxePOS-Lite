@@ -49,7 +49,12 @@ jobs:
 
       - name: Build APK (debug, non signé)
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
+        run: |
+          # v1.0.4 — Safety net : restaure le flag +x sur gradlew au cas où
+          # un commit Windows aurait perdu la permission Unix (déjà fixé via
+          # git update-index --chmod=+x mais ceinture+bretelles).
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
 
       - name: Rename APK avec version
         shell: bash

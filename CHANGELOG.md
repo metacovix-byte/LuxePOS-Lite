@@ -5,6 +5,27 @@ Toutes les versions notables de LuxePOS Lite sont documentées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 Versioning : [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.5] — 2026-05-26 — Fix permission gradlew (APK Android v1.0.4 raté)
+
+### Corrigé
+Le build APK Android v1.0.4 a échoué sur CI Linux avec :
+```
+./gradlew: Permission denied (exit code 126)
+```
+
+**Cause** : le projet `/android/` cloné depuis LuxePOS-Web a été copié via
+Windows qui ne préserve PAS le bit exécutable Unix sur `gradlew`. Sur Linux
+CI (ubuntu-latest), le script n'avait pas droit d'exécution.
+
+**Fix double protection** :
+- `git update-index --chmod=+x android/gradlew` → mode 100755 dans l'index
+  git, permission propagée à chaque clone (solution permanente)
+- Workflow `build-android.yml` : `chmod +x gradlew` avant `./gradlew` (safety
+  net si le bit est de nouveau perdu lors d'opérations Windows)
+
+v1.0.4 reste accessible (Win/Mac OK) mais sans APK. v1.0.5 = même contenu
+v1.0.4 + APK Android fonctionnel.
+
 ## [1.0.4] — 2026-05-26 — APK Android + retrait Lumi (assistant IA)
 
 ### Ajouté — APK Android

@@ -5,6 +5,80 @@ Toutes les versions notables de LuxePOS Lite sont documentées ici.
 Format inspiré de [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
 Versioning : [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.7] — 2026-05-29 — Page Feedback fiable pour les testeuses
+
+### Corrigé — Dialog « Signaler un problème » cassé
+Le dialog était accessible depuis le menu Plus mais ne marchait pas pour les testeuses :
+
+- **Version hardcodée fausse** : affichait `LuxePOS v5.8 (Build 2026-04-26)` au lieu
+  de `LuxePOS Lite v1.0.7` → impossible de savoir quelle build est concernée par
+  un bug report.
+- **Email destinataire fictif** : `mailto:support@luxepos.local` → adresse qui
+  n'existe pas, l'email atterrissait dans le néant. Maintenant pointe vers
+  `metacovix@gmail.com` (boîte de support réelle).
+- **Pas de détection plateforme / OS** : impossible de savoir si le bug est
+  sur Windows Tauri, macOS Tauri, Android Capacitor ou Web. Maintenant
+  le contexte inclut `plateforme` (Tauri/Capacitor/Web) + `os` (Windows/macOS/Android/iOS/Linux).
+- **Nom de la boutique** ajouté dans le contexte pour identifier la testeuse
+  sans qu'elle ait à se nommer.
+
+### Ajouté
+- **Bouton « Copier seulement »** : pour les testeuses dont le client email
+  n'est pas configuré (mailto: échoue silencieusement). Copie le message
+  complet dans le presse-papier — collable dans WhatsApp, Insta DM, Discord,
+  ou n'importe quel webmail.
+- **Fallback presse-papier robuste** : `navigator.clipboard.writeText()` puis
+  fallback `textarea + execCommand('copy')` pour les vieux WebViews Android.
+- **Toast plus clair** : indique où coller le message si l'email ne s'ouvre pas.
+
+### Corrigé — Audit adversarial (28 agents, 22 findings confirmés)
+Un audit multi-agent a révélé que le `mailto:` était **cassé sur les plateformes
+natives** — exactement celles qu'utilisent les testeuses :
+
+- **P1 — `window.location.href = mailto` ne marche PAS dans la WebView Tauri**
+  (Windows/macOS). L'assignation échoue silencieusement, aucun client email ne
+  s'ouvre, mais un faux toast « Email ouvert » s'affichait. → Désormais routé via
+  le **plugin shell Tauri** (`invoke('plugin:shell|open')`, autorisé par la
+  capability `shell:allow-open`), qui ouvre réellement le client email de l'OS.
+- **P1 — sur Capacitor Android**, `window.location.href = mailto` pouvait
+  naviguer la WebView hors de l'app. → Route via `@capacitor/app` (App.openUrl)
+  si présent, sinon `window.open('_system')`.
+- **P1 — faux toast de succès** : le toast affichait toujours « Email ouvert »
+  même en cas d'échec. → `_openExternal()` renvoie un booléen ; le toast est
+  maintenant **honnête** (succès réel vs « aucun client email détecté, message
+  copié, collez-le dans WhatsApp »).
+- **P1 — fuite mémoire** : le listener `keydown` (Escape) n'était jamais retiré,
+  s'accumulant à chaque ouverture. → `_closeFeedbackDialog()` centralise le
+  cleanup (retrait listener + remove overlay), utilisé par tous les chemins de
+  fermeture (X, Annuler, Escape, clic overlay, après envoi).
+- **P2 — destinataire invisible** : l'email n'apparaissait que dans le bloc
+  technique replié. → Ligne « 📬 Destinataire : metacovix@gmail.com » visible
+  sous les boutons, avant l'envoi.
+- **P2 — détection plateforme dupliquée/fragile** inline. → Réutilise les
+  helpers éprouvés `window.store._isTauri()` / `_isCapacitor()`.
+- **P2 — label trompeur** « Ouvrir mon email » → « Envoyer par email » + tooltip
+  explicatif (fallback presse-papier si pas de client).
+- **P2 — toast trop court** (6 s → 8-9 s) + instruction de collage explicite.
+- **P3 — perf** : `stateSizeKB` réutilise la sérialisation en cache
+  (`store._lastSerialized`) au lieu de re-`JSON.stringify` tout le state à chaque
+  ouverture.
+- **P3 — mailto trop long** : corps mailto en JSON compact (le presse-papier
+  garde la version lisible indentée).
+- **P3 — email en dur** centralisé dans `APP_CONFIG.SUPPORT_EMAIL`.
+- **P3 — clarté RGPD** : le bloc technique précise « reste dans votre message,
+  jamais partagé ailleurs ».
+
+2 findings rejetés (faux positifs) : pas de fuite du state complet (seul un objet
+métadonnées est envoyé), pas de XSS (escapeHtml correctement appliqué sur le `<pre>`).
+
+### Tests
+- Test 008 : version dynamique dans le contexte, absence de `v5.8`, destinataire
+  visible à l'écran, `SUPPORT_EMAIL` depuis APP_CONFIG, absence de
+  `support@luxepos.local`.
+- Test 009 : ouverture/fermeture ×3 → listener Escape nettoyé (pas de fuite).
+- Test 010 : `_openExternal` route via `plugin:shell|open` quand Tauri est simulé
+  (et non `window.location.href`).
+
 ## [1.0.6] — 2026-05-28 — Calculatrice flottante (draggable + minimisable)
 
 ### Ajouté — Calculatrice flottante

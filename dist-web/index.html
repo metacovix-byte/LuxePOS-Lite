@@ -320,8 +320,9 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
          ═══════════════════════════════════════════════════════════════════════ -->
     <script>
         const APP_CONFIG = Object.freeze({
-            VERSION: '1.0.6',
+            VERSION: '1.0.7',
             EDITION: 'Lite',   // distinct des installs LuxePOS completes
+            SUPPORT_EMAIL: 'metacovix@gmail.com',   // v1.0.7 — destinataire du feedback testeuses
 
             // ── Durées (en millisecondes)
             TIME: Object.freeze({
@@ -24602,24 +24603,57 @@ td{padding:12px;border-bottom:1px solid #eee}
         // v5.8 — Signaler un problème (feedback)
         // ──────────────────────────────────────────────────────────────────
         showFeedbackDialog() {
-            document.getElementById('feedback-overlay')?.remove();
+            this._closeFeedbackDialog();   // v1.0.7 — nettoie un éventuel dialog + listener précédents
             const overlay = document.createElement('div');
             overlay.id = 'feedback-overlay';
             overlay.style.cssText = 'position:fixed; inset:0; z-index:9991; background:rgba(0,0,0,0.7); backdrop-filter:blur(10px); display:flex; align-items:center; justify-content:center; padding:16px; animation: fadeIn 0.2s;';
-            overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+            overlay.onclick = (e) => { if (e.target === overlay) this._closeFeedbackDialog(); };
 
             // Récolte de contexte automatique pour faciliter le diagnostic
+            // v1.0.7 — version dynamique + plateforme + OS + testeuse
+            // Réutilise les helpers store éprouvés (_isTauri/_isCapacitor) au lieu de redétecter.
+            const ua = navigator.userAgent || '';
+            const isTauri = !!window.store?._isTauri?.();
+            const isCapacitor = !!window.store?._isCapacitor?.();
+            const platform = isTauri ? 'Tauri (desktop)' : isCapacitor ? 'Capacitor (mobile)' : 'Web';
+            let os = 'Inconnu';
+            if (/Windows/i.test(ua)) os = 'Windows';
+            else if (/Macintosh|Mac OS/i.test(ua)) os = 'macOS';
+            else if (/Android/i.test(ua)) os = 'Android';
+            else if (/iPhone|iPad/i.test(ua)) os = 'iOS';
+            else if (/Linux/i.test(ua)) os = 'Linux';
+            const ver = window.APP_CONFIG?.VERSION || '?';
+            const edition = window.APP_CONFIG?.EDITION || '';
+            const supportEmail = window.APP_CONFIG?.SUPPORT_EMAIL || 'metacovix@gmail.com';
+            const storeName = window.store?.state?.settings?.storeName || '';
+            // stateSizeKB : réutilise la sérialisation déjà en cache (évite un JSON.stringify
+            // du state entier à chaque ouverture du dialog — peut être lourd avec gros inventaire).
+            const cachedLen = window.store?._lastSerialized?.length;
+            const stateSizeKB = cachedLen
+                ? Math.round(cachedLen / 1024)
+                : Math.round(JSON.stringify(window.store?.state || {}).length / 1024);
             const ctx = {
-                version: 'LuxePOS v5.8 (Build 2026-04-26)',
+                version: `LuxePOS ${edition} v${ver}`,
+                plateforme: platform,
+                os: os,
+                boutique: storeName || '(non renseignée)',
                 page: window.router?.currentPage || '?',
                 products: (window.store.state.products || []).length,
                 sales: (window.store.state.sales || []).length,
-                stateSizeKB: Math.round(JSON.stringify(window.store.state).length / 1024),
-                ua: (navigator.userAgent || '').substring(0, 80),
+                stateSizeKB: stateSizeKB,
+                ua: ua.substring(0, 100),
                 lang: navigator.language,
                 online: navigator.onLine ? 'oui' : 'non',
                 lastSavedAgo: window.store.state._lastSavedAt ? Math.round((Date.now() - window.store.state._lastSavedAt) / 1000) + 's' : 'jamais'
             };
+            // Mémorise pour _sendFeedback : flags plateforme + email (sans re-détecter).
+            this._feedbackMeta = { isTauri, isCapacitor, supportEmail };
+
+            // v1.0.7 — Sur plateformes natives (Tauri/Capacitor), le bouton email principal
+            // est "Envoyer par email" mais routé via _openExternal (shell.open) ; sur Web
+            // c'est un mailto: standard. Le bouton "Copier" reste le filet de sécurité universel.
+            const emailBtnLabel = 'Envoyer par email';
+            const escEmail = escapeHtml(supportEmail);
 
             overlay.innerHTML = `
                 <div class="card-2026" style="max-width:520px; width:100%; max-height:92vh; padding:0; display:flex; flex-direction:column; animation: slideUpSpring 0.4s var(--ease-spring);" onclick="event.stopPropagation()">
@@ -24628,7 +24662,7 @@ td{padding:12px;border-bottom:1px solid #eee}
                             <h3 style="font-size:1.1rem; font-weight:800; margin:0;">Signaler un problème</h3>
                             <p style="font-size:0.75rem; opacity:0.65; margin:2px 0 0;">Bug, suggestion, ou question</p>
                         </div>
-                        <button onclick="document.getElementById('feedback-overlay')?.remove()" class="btn-press" style="padding:8px; border-radius:10px; background:var(--bg-tertiary);" aria-label="Fermer">
+                        <button onclick="window.ui._closeFeedbackDialog()" class="btn-press" style="padding:8px; border-radius:10px; background:var(--bg-tertiary);" aria-label="Fermer">
                             <i data-lucide="x" class="w-5 h-5"></i>
                         </button>
                     </div>
@@ -24648,44 +24682,166 @@ td{padding:12px;border-bottom:1px solid #eee}
                                       style="width:100%; padding:12px 14px; border-radius:var(--radius-md); background:var(--bg-tertiary); border:1px solid var(--border-color); font-size:0.88rem; resize:vertical; font-family:inherit;"></textarea>
                         </div>
                         <details style="border:1px dashed var(--border-color); border-radius:var(--radius-md); padding:0;">
-                            <summary style="cursor:pointer; padding:10px 14px; font-size:0.78rem; opacity:0.7;">📋 Contexte technique inclus (cliquez pour voir)</summary>
+                            <summary style="cursor:pointer; padding:10px 14px; font-size:0.78rem; opacity:0.7;">🔒 Contexte technique (inclus pour aider au diagnostic — reste dans votre message, jamais partagé ailleurs)</summary>
                             <pre style="margin:0; padding:12px 14px; font-size:0.7rem; background:var(--bg-tertiary); border-top:1px solid var(--border-color); border-radius:0 0 var(--radius-md) var(--radius-md); overflow:auto; white-space:pre-wrap; word-break:break-word;">${escapeHtml(JSON.stringify(ctx, null, 2))}</pre>
                         </details>
                     </div>
-                    <div style="padding:14px 24px; border-top:1px solid var(--border-color); display:flex; gap:8px; justify-content:flex-end;">
-                        <button onclick="document.getElementById('feedback-overlay')?.remove()" class="btn-2026 secondary">Annuler</button>
-                        <button onclick="window.ui._sendFeedback()" class="btn-2026 primary">
+                    <div style="font-size:0.74rem; opacity:0.6; text-align:center; padding:0 24px 8px;">📬 Destinataire : ${escEmail}</div>
+                    <div style="padding:14px 24px; border-top:1px solid var(--border-color); display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
+                        <button onclick="window.ui._closeFeedbackDialog()" class="btn-2026 secondary">Annuler</button>
+                        <button onclick="window.ui._sendFeedback({ copyOnly: true })" class="btn-2026 secondary" title="Copier le message dans le presse-papier — collez-le dans WhatsApp, Insta DM ou un email">
+                            <i data-lucide="clipboard-copy" class="w-4 h-4"></i>
+                            Copier le message
+                        </button>
+                        <button onclick="window.ui._sendFeedback()" class="btn-2026 primary" title="Ouvre votre client email. S'il n'est pas configuré, le message reste copié dans le presse-papier.">
                             <i data-lucide="mail" class="w-4 h-4"></i>
-                            Ouvrir mon email
+                            ${emailBtnLabel}
                         </button>
                     </div>
                 </div>
             `;
             document.body.appendChild(overlay);
             lucide.createIcons();
-            this._feedbackEsc = (e) => { if (e.key === 'Escape') overlay.remove(); };
+            this._feedbackEsc = (e) => { if (e.key === 'Escape') this._closeFeedbackDialog(); };
             document.addEventListener('keydown', this._feedbackEsc);
             this._feedbackCtx = ctx;
             setTimeout(() => document.getElementById('feedback-text')?.focus(), 100);
         }
 
-        _sendFeedback() {
+        /**
+         * v1.0.7 — Ferme le dialog feedback ET retire le listener Escape (évite la fuite mémoire
+         * et les handlers multiples accumulés à chaque ouverture).
+         */
+        _closeFeedbackDialog() {
+            if (this._feedbackEsc) {
+                document.removeEventListener('keydown', this._feedbackEsc);
+                this._feedbackEsc = null;
+            }
+            document.getElementById('feedback-overlay')?.remove();
+        }
+
+        /**
+         * v1.0.7 — Ouvre une URL externe (mailto:, https:…) de façon fiable selon la plateforme.
+         * Renvoie une Promise<boolean> indiquant si l'ouverture a réussi.
+         * - Tauri : window.location.href ne déclenche PAS le handler OS → on passe par le plugin
+         *   shell (invoke 'plugin:shell|open'), autorisé par la capability `shell:allow-open`.
+         * - Capacitor : @capacitor/app (App.openUrl) si présent, sinon window.open('_system').
+         * - Web : mailto via location.href, http(s) via window.open.
+         */
+        async _openExternal(url) {
+            const meta = this._feedbackMeta || {};
+            // Tauri desktop
+            if (meta.isTauri || window.store?._isTauri?.()) {
+                try {
+                    const invoke = window.__TAURI__?.core?.invoke || window.__TAURI_INTERNALS__?.invoke;
+                    if (!invoke) return false;
+                    await invoke('plugin:shell|open', { path: url });
+                    return true;
+                } catch (e) {
+                    window.LOG?.warn?.('Tauri shell open failed', e);
+                    return false;
+                }
+            }
+            // Capacitor mobile
+            if (meta.isCapacitor || window.store?._isCapacitor?.()) {
+                try {
+                    const App = window.Capacitor?.Plugins?.App;
+                    if (App?.openUrl) { await App.openUrl({ url }); return true; }
+                } catch (e) { /* fallback ci-dessous */ }
+                try { window.open(url, '_system'); return true; } catch (e) { return false; }
+            }
+            // Web
+            try {
+                if (/^mailto:/i.test(url)) {
+                    window.location.href = url;
+                } else {
+                    window.open(url, '_blank', 'noopener');
+                }
+                return true;
+            } catch (e) { return false; }
+        }
+
+        async _sendFeedback(opts = {}) {
+            const { copyOnly = false } = opts;
             const type = document.getElementById('feedback-type')?.value || 'other';
             const text = document.getElementById('feedback-text')?.value?.trim() || '';
             if (!text) { this.toast?.('Décrivez d\'abord votre message', 'warning'); return; }
             const ctx = this._feedbackCtx || {};
-            const subject = `[LuxePOS ${ctx.version || ''}] ${type === 'bug' ? '🐛 Bug' : type === 'suggestion' ? '💡 Suggestion' : type === 'question' ? '❓ Question' : '✉️ Feedback'}`;
-            const body = `${text}\n\n---\nContexte technique :\n${JSON.stringify(ctx, null, 2)}`;
-            const mailto = `mailto:support@luxepos.local?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-            try { window.location.href = mailto; } catch (e) {}
-            // Copie aussi dans le presse-papier au cas où
-            try {
-                navigator.clipboard.writeText(body);
-                this.toast?.('📋 Aussi copié dans le presse-papier · ouverture email…', 'success', 4000);
-            } catch (e) {
-                this.toast?.('Email ouvert', 'info', 2000);
+            const meta = this._feedbackMeta || {};
+            const supportEmail = meta.supportEmail || window.APP_CONFIG?.SUPPORT_EMAIL || 'metacovix@gmail.com';
+            const subject = `[${ctx.version || 'LuxePOS'}] ${type === 'bug' ? '🐛 Bug' : type === 'suggestion' ? '💡 Suggestion' : type === 'question' ? '❓ Question' : '✉️ Feedback'}`;
+
+            // Contexte sérialisé une seule fois. Lisible (indenté) pour le presse-papier,
+            // compact pour le mailto (les URLs mailto ont une limite de longueur ~2000 car.).
+            const ctxPretty = JSON.stringify(ctx, null, 2);
+            const ctxCompact = JSON.stringify(ctx);
+            const clipboardBody = `Sujet : ${subject}\nÀ : ${supportEmail}\n\n${text}\n\n---\nContexte technique :\n${ctxPretty}`;
+
+            // Copie systématique dans le presse-papier (filet de sécurité universel,
+            // marche sur Tauri/Capacitor/Web). Awaitée pour un toast honnête.
+            const copied = await this._copyToClipboard(clipboardBody);
+
+            if (copyOnly) {
+                this.toast?.(
+                    copied
+                        ? `📋 Message copié — collez-le (Ctrl+V / Cmd+V) dans WhatsApp, Insta DM ou un email à ${supportEmail}`
+                        : '⚠️ Copie échouée — sélectionnez le texte du contexte ci-dessus et copiez-le manuellement',
+                    copied ? 'success' : 'warning',
+                    8000
+                );
+                this._closeFeedbackDialog();
+                return;
             }
-            document.getElementById('feedback-overlay')?.remove();
+
+            // Construit le mailto (corps compact pour rester sous la limite de longueur).
+            const mailtoBody = `${text}\n\n---\nContexte :\n${ctxCompact}`;
+            const mailto = `mailto:${supportEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(mailtoBody)}`;
+            // Ouverture routée selon la plateforme (mailto direct ne marche PAS dans la WebView
+            // Tauri ; window.location.href risque de casser la WebView Capacitor).
+            const opened = await this._openExternal(mailto);
+
+            if (opened) {
+                this.toast?.(
+                    copied
+                        ? '📧 Email ouvert · message aussi copié au cas où'
+                        : '📧 Email ouvert',
+                    'success',
+                    5000
+                );
+            } else {
+                // L'ouverture email a échoué (pas de client configuré, plateforme bloquante…).
+                // Le presse-papier est le filet : on dit clairement quoi faire.
+                this.toast?.(
+                    copied
+                        ? `📋 Aucun client email détecté — votre message est copié, collez-le dans WhatsApp ou un email à ${supportEmail}`
+                        : `⚠️ Impossible d'ouvrir l'email. Écrivez-nous à ${supportEmail}`,
+                    'warning',
+                    9000
+                );
+            }
+            this._closeFeedbackDialog();
+        }
+
+        /**
+         * v1.0.7 — Copie du texte dans le presse-papier avec fallback legacy (vieux WebView Android).
+         * Renvoie Promise<boolean>.
+         */
+        async _copyToClipboard(text) {
+            try {
+                await navigator.clipboard.writeText(text);
+                return true;
+            } catch (e) {
+                try {
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    const ok = document.execCommand('copy');
+                    ta.remove();
+                    return !!ok;
+                } catch (e2) { return false; }
+            }
         }
 
         // ──────────────────────────────────────────────────────────────────

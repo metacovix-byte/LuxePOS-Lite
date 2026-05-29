@@ -127,4 +127,80 @@ test.describe('LuxePOS Lite — Smoke tests v1.0', () => {
         const result = await page.evaluate(() => document.getElementById('calc-display')?.textContent);
         expect(result).toBe('0.3'); // NOT 0.30000000000000004
     });
+
+    test('008. Feedback dialog : ouvre, contexte dynamique, email config, destinataire visible', async ({ page }) => {
+        await page.evaluate(() => window.ui.showFeedbackDialog());
+        await page.waitForTimeout(200);
+
+        const overlayExists = await page.evaluate(() => !!document.getElementById('feedback-overlay'));
+        expect(overlayExists).toBe(true);
+
+        // Contexte technique : version dynamique (pas l'ancienne v5.8 hardcodée), champs v1.0.7
+        const ctxStr = await page.evaluate(() => document.querySelector('#feedback-overlay pre')?.textContent || '');
+        expect(ctxStr).toContain('1.0');
+        expect(ctxStr).not.toContain('v5.8');
+        expect(ctxStr).toMatch(/plateforme/i);
+        expect(ctxStr).toMatch(/\bos\b/i);
+
+        // Destinataire visible À L'ÉCRAN avant l'envoi (finding UX P2)
+        const dialogText = await page.evaluate(() => document.getElementById('feedback-overlay')?.textContent || '');
+        expect(dialogText).toContain('metacovix@gmail.com');
+        expect(dialogText).toContain('Destinataire');
+
+        // L'email destinataire vient de APP_CONFIG (plus de hardcode épars)
+        const cfgEmail = await page.evaluate(() => window.APP_CONFIG?.SUPPORT_EMAIL);
+        expect(cfgEmail).toBe('metacovix@gmail.com');
+
+        // _sendFeedback ne doit plus contenir l'ancien email fictif
+        const sendSrc = await page.evaluate(() => window.ui._sendFeedback.toString());
+        expect(sendSrc).not.toContain('support@luxepos.local');
+
+        await page.evaluate(() => window.ui._closeFeedbackDialog());
+    });
+
+    test('009. Feedback : listener Escape nettoyé (pas de fuite), fermeture propre', async ({ page }) => {
+        // Ouvre/ferme 3× : le handler Escape ne doit pas s'accumuler
+        const leak = await page.evaluate(async () => {
+            for (let i = 0; i < 3; i++) {
+                window.ui.showFeedbackDialog();
+                await new Promise(r => setTimeout(r, 50));
+                window.ui._closeFeedbackDialog();
+                await new Promise(r => setTimeout(r, 50));
+            }
+            // Après fermeture, _feedbackEsc doit être null (listener retiré)
+            return {
+                escIsNull: window.ui._feedbackEsc === null || window.ui._feedbackEsc === undefined,
+                overlayGone: document.getElementById('feedback-overlay') === null
+            };
+        });
+        expect(leak.escIsNull).toBe(true);
+        expect(leak.overlayGone).toBe(true);
+    });
+
+    test('010. Feedback : _openExternal route via shell sur Tauri (pas window.location.href)', async ({ page }) => {
+        // Simule un environnement Tauri et vérifie que _openExternal invoque plugin:shell|open
+        const result = await page.evaluate(async () => {
+            const calls = { invokeCmd: null, invokeArgs: null, locationChanged: false };
+            // Stub Tauri internals
+            const origTauri = window.__TAURI_INTERNALS__;
+            const origIsTauri = window.store._isTauri;
+            window.__TAURI_INTERNALS__ = {
+                invoke: (cmd, args) => { calls.invokeCmd = cmd; calls.invokeArgs = args; return Promise.resolve(); }
+            };
+            window.store._isTauri = () => true;
+            window.ui._feedbackMeta = { isTauri: true, isCapacitor: false, supportEmail: 'metacovix@gmail.com' };
+            try {
+                const ok = await window.ui._openExternal('mailto:metacovix@gmail.com?subject=test');
+                calls.ok = ok;
+            } finally {
+                window.__TAURI_INTERNALS__ = origTauri;
+                window.store._isTauri = origIsTauri;
+                window.ui._feedbackMeta = null;
+            }
+            return calls;
+        });
+        expect(result.ok).toBe(true);
+        expect(result.invokeCmd).toBe('plugin:shell|open');
+        expect(result.invokeArgs?.path).toContain('mailto:metacovix@gmail.com');
+    });
 });
